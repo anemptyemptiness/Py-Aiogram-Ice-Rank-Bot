@@ -12,11 +12,12 @@ from fsm.fsm import FSMStartShift
 from keyboards.keyboard import create_yes_no_kb, create_cancel_kb, create_places_kb, create_rules_kb
 from middleware.album_middleware import AlbumsMiddleware
 from lexicon.lexicon_ru import RUSSIAN_WEEK_DAYS
-from config.config import config, place_chat
+from config.config import config
 from db import DB
 
 router_start_shift = Router()
 router_start_shift.message.middleware(middleware=AlbumsMiddleware(2))
+place_chat: dict = {title: chat_id for title, chat_id in DB.get_places()}
 
 
 async def report(dictionary: Dict[str, Any], date: str, user_id: Union[str, int]) -> str:

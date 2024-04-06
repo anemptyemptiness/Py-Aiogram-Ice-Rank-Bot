@@ -1,10 +1,6 @@
 from aiogram.fsm.state import StatesGroup, State
 
 
-class Authorise(StatesGroup):
-    fullname = State()
-
-
 class FSMStartShift(StatesGroup):
     place = State()
     employee_photo = State()
@@ -104,7 +100,15 @@ class FSMAdmin(StatesGroup):
 
     # добавить рабочую точку в БД
     add_place = State()
+    add_place_id = State()
+    check_place = State()
+    rename_place = State()
+    reid_place = State()
 
     # удалить рабочую точку в БД
+    which_place_to_delete = State()
+    deleting_place = State()
 
     # получить список рабочих точек
+    watching_place = State()
+    current_place = State()

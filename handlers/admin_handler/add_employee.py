@@ -4,7 +4,7 @@ from aiogram.fsm.state import default_state
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 
-from filters.is_admin import isAdminFilter
+from filters.is_admin import isAdminFilterMessage, isNotAdminFilterCallback
 from keyboards.adm_keyboard import create_admin_kb, check_add_employee
 from keyboards.keyboard import create_cancel_kb
 from fsm.fsm import FSMAdmin
@@ -13,7 +13,7 @@ from db import DB
 router_admin = Router()
 
 
-@router_admin.message(Command(commands="admin"), StateFilter(default_state), isAdminFilter())
+@router_admin.message(Command(commands="admin"), StateFilter(default_state), isAdminFilterMessage())
 async def process_start_adm_command(message: Message, state: FSMContext):
     await message.answer(
         text="Добро пожаловать в админскую панель!",
@@ -33,6 +33,20 @@ async def warning_start_adm_command(message: Message):
              "/encashment - инкассация",
         parse_mode="html",
     )
+
+
+@router_admin.callback_query(StateFilter(FSMAdmin.in_adm), isNotAdminFilterCallback(), F.data)
+async def process_user_is_not_admin(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete_reply_markup()
+    await callback.message.edit_text(
+        text="Извините, Вы больше не администратор",
+    )
+    await callback.message.answer(
+        text="Вы вернулись в главное меню!",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    await callback.answer()
+    await state.clear()
 
 
 @router_admin.callback_query(StateFilter(FSMAdmin.in_adm), F.data == "adm_exit")
@@ -155,7 +169,7 @@ async def process_access_emp_command(callback: CallbackQuery, state: FSMContext)
         reply_markup=ReplyKeyboardRemove(),
     )
     await callback.message.answer(
-        text="Админ панель:",
+        text="Админская панель:",
         reply_markup=create_admin_kb(),
     )
     await callback.answer()
@@ -214,6 +228,15 @@ async def process_new_name_emp_command(message: Message, state: FSMContext):
     await state.set_state(FSMAdmin.check_employee)
 
 
+@router_admin.message(StateFilter(FSMAdmin.rename_employee))
+async def warning_rename_emp_command(message: Message):
+    await message.answer(
+        text="Введите новое <b>имя и фамилию</b> сотрудника\n\n"
+             "<em>Например: Иван Иванов</em>",
+        parse_mode="html",
+    )
+
+
 @router_admin.message(StateFilter(FSMAdmin.reid_employee), F.text.isdigit())
 async def process_new_id_emp_command(message: Message, state: FSMContext):
     await state.update_data(employee_id=int(message.text))
@@ -231,6 +254,17 @@ async def process_new_id_emp_command(message: Message, state: FSMContext):
     await state.set_state(FSMAdmin.check_employee)
 
 
+@router_admin.message(StateFilter(FSMAdmin.reid_employee))
+async def warning_reid_emp_command(message: Message):
+    await message.answer(
+        text="Введите новый <b>id</b> сотрудника <b>ЧИСЛОМ</b>\n\n"
+             "Сервис по поиску id - @getmyid_bot\n\n"
+             "Отправьте id одним сообщением!\n"
+             "<em>Например: 293982824</em>",
+        parse_mode="html",
+    )
+
+
 @router_admin.message(StateFilter(FSMAdmin.reusername_employee), F.text)
 async def process_new_username_emp_command(message: Message, state: FSMContext):
     await state.update_data(employee_username=message.text)
@@ -246,3 +280,12 @@ async def process_new_username_emp_command(message: Message, state: FSMContext):
         reply_markup=check_add_employee(),
     )
     await state.set_state(FSMAdmin.check_employee)
+
+
+@router_admin.message(StateFilter(FSMAdmin.reusername_employee))
+async def warning_reusername_emp_command(message: Message):
+    await message.answer(
+        text="Введите новый <b>username</b> сотрудника\n\n"
+             "<em>Например: @username</em>",
+        parse_mode="html",
+    )

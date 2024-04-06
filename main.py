@@ -30,13 +30,14 @@ async def auto_posting():
 
     while True:
         if datetime.now(tz=timezone(timedelta(hours=3.0))).hour == 16:
-            user_ids = DB.get_users()
+            user_ids = DB.get_employees_user_ids()
+            admins_ids = DB.get_admins_user_ids()
 
             for user_id in user_ids:
-                if user_id[0] in config.employees:
+                if user_id not in admins_ids:  # админам не нужно присылать уведомления
                     try:
                         message = await bot.send_message(
-                            chat_id=user_id[0],
+                            chat_id=user_id,
                             text=NOTIFICATION,
                             parse_mode="html",
                         )

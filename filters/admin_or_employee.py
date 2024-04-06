@@ -1,11 +1,9 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
+from db import DB
 
 
 class CheckUserFilter(BaseFilter):
-    def __init__(self, admins: list, employees: list):
-        self.admins = admins
-        self.employees = employees
-
     async def __call__(self, message: Message) -> bool:
-        return not (message.from_user.id in self.admins or message.from_user.id in self.employees)
+        user_id = int(message.from_user.id)
+        return not (user_id in DB.get_employees_user_ids() or user_id in DB.get_admins_user_ids())

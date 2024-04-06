@@ -124,7 +124,7 @@ async def process_access_admin_command(callback: CallbackQuery, state: FSMContex
         reply_markup=ReplyKeyboardRemove(),
     )
     await callback.message.answer(
-        text="Админ панель:",
+        text="Админская панель:",
         reply_markup=create_admin_kb(),
     )
     await callback.answer()
@@ -183,6 +183,15 @@ async def process_new_name_admin_command(message: Message, state: FSMContext):
     await state.set_state(FSMAdmin.check_admin)
 
 
+@router_add_adm.message(StateFilter(FSMAdmin.rename_admin))
+async def warning_new_name_admin_command(message: Message):
+    await message.answer(
+        text="Введите новое <b>имя и фамилию</b> администратора\n\n"
+             "<em>Например: Иван Иванов</em>",
+        parse_mode="html",
+    )
+
+
 @router_add_adm.message(StateFilter(FSMAdmin.reid_admin), F.text.isdigit())
 async def process_new_id_admin_command(message: Message, state: FSMContext):
     await state.update_data(admin_id=int(message.text))
@@ -200,6 +209,17 @@ async def process_new_id_admin_command(message: Message, state: FSMContext):
     await state.set_state(FSMAdmin.check_admin)
 
 
+@router_add_adm.message(StateFilter(FSMAdmin.reid_admin))
+async def warning_new_id_admin_command(message: Message):
+    await message.answer(
+        text="Введите новый <b>id</b> администратора\n\n"
+             "Сервис по поиску id - @getmyid_bot\n\n"
+             "Отправьте id одним сообщением!\n"
+             "<em>Например: 293982824</em>",
+        parse_mode="html",
+    )
+
+
 @router_add_adm.message(StateFilter(FSMAdmin.reusername_admin), F.text)
 async def process_new_username_admin_command(message: Message, state: FSMContext):
     await state.update_data(admin_username=message.text)
@@ -215,3 +235,12 @@ async def process_new_username_admin_command(message: Message, state: FSMContext
         reply_markup=check_add_admin(),
     )
     await state.set_state(FSMAdmin.check_admin)
+
+
+@router_add_adm.message(StateFilter(FSMAdmin.reusername_admin))
+async def warning_new_username_admin_command(message: Message):
+    await message.answer(
+        text="Введите новый <b>username</b> администратора\n\n"
+             "<em>Например: @username</em>",
+        parse_mode="html",
+    )

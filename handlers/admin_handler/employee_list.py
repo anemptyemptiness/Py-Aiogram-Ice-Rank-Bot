@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
@@ -7,7 +7,6 @@ from keyboards.adm_keyboard import create_employee_list_kb, create_admin_kb, cre
 from callbacks.employee import EmployeeCallbackFactory
 from fsm.fsm import FSMAdmin
 from .add_employee import router_admin
-from db import DB
 
 router_show_emp = Router()
 router_admin.include_router(router_show_emp)

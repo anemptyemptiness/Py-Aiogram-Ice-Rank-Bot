@@ -20,57 +20,18 @@ class DataBase:
 
         return connect
 
-    def get_users(self):
-        connect = self.connect_to_db()
-        cursor = connect.cursor()
-
-        try:
-            cursor.execute("SELECT user_id FROM users;")
-            user_ids = cursor.fetchall()
-            return user_ids
-        except Exception as e:
-            print("Error with SELECT:", e)
-        finally:
-            cursor.close()
-            connect.close()
-
-    def add_users(self, user_id: int, fullname: str) -> None:
-        connect = self.connect_to_db()
-        cursor = connect.cursor()
-
-        try:
-            cursor.execute(f"INSERT INTO users (user_id, fullname) VALUES ({user_id}, '{fullname}');")
-            connect.commit()
-        except Exception as e:
-            print("Error with INSERT:", e)
-        finally:
-            cursor.close()
-            connect.close()
-
-    def user_exists(self, user_id) -> bool:
-        connect = self.connect_to_db()
-        cursor = connect.cursor()
-
-        try:
-            cursor.execute(f"SELECT user_id FROM users WHERE user_id = {user_id};")
-            user_id = cursor.fetchone()
-            return True if user_id else False
-        except Exception as e:
-            print("Error with CHECK EXISTS:", e)
-        finally:
-            cursor.close()
-            connect.close()
-
     def set_data(self, user_id: int, date: str, place: str, count: int, cash) -> None:
         connect = self.connect_to_db()
         cursor = connect.cursor()
 
         try:
-            cursor.execute("INSERT INTO visitors (user_id, date, place, count, cash) "
-                           f"VALUES ({user_id}, '{date}', '{place}', {count}, {cash});")
+            cursor.execute(
+                "INSERT INTO visitors (user_id, date, place, count, cash) "
+                f"VALUES ({user_id}, '{date}', '{place}', {count}, {cash});"
+            )
             connect.commit()
         except Exception as e:
-            print("Error with INSERT:", e)
+            print("DB: set_data() error:", e)
         finally:
             cursor.close()
             connect.close()
@@ -80,16 +41,18 @@ class DataBase:
         cursor = connect.cursor()
 
         try:
-            cursor.execute("SELECT v.place, u.fullname, v.user_id, SUM(v.count) "
-                           "FROM visitors AS v, users AS u "
-                           f"WHERE v.date BETWEEN '{date_from}' AND '{date_to}' "
-                           "AND u.user_id = v.user_id "
-                           "GROUP BY v.user_id, v.place, u.fullname "
-                           "ORDER BY 1;")
+            cursor.execute(
+                "SELECT v.place, u.fullname, v.user_id, SUM(v.count) "
+                "FROM visitors AS v, users AS u "
+                f"WHERE v.date BETWEEN '{date_from}' AND '{date_to}' "
+                "AND u.user_id = v.user_id "
+                "GROUP BY v.user_id, v.place, u.fullname "
+                "ORDER BY 1;"
+            )
             rows = cursor.fetchall()
             return rows
         except Exception as e:
-            print("Error with statistics:", e)
+            print("DB: get_statistics_visitors() error:", e)
             return ["----"]
         finally:
             cursor.close()
@@ -100,16 +63,18 @@ class DataBase:
         cursor = connect.cursor()
 
         try:
-            cursor.execute("SELECT v.place, u.fullname, v.user_id, concat(SUM(v.cash::numeric)) "
-                           "FROM visitors AS v, users AS u "
-                           f"WHERE v.date BETWEEN '{date_from}' AND '{date_to}' "
-                           "AND u.user_id = v.user_id "
-                           "GROUP BY v.user_id, v.place, u.fullname "
-                           "ORDER BY 1;")
+            cursor.execute(
+                "SELECT v.place, u.fullname, v.user_id, concat(SUM(v.cash::numeric)) "
+                "FROM visitors AS v, users AS u "
+                f"WHERE v.date BETWEEN '{date_from}' AND '{date_to}' "
+                "AND u.user_id = v.user_id "
+                "GROUP BY v.user_id, v.place, u.fullname "
+                "ORDER BY 1;"
+            )
             rows = cursor.fetchall()
             return rows
         except Exception as e:
-            print("Error with money statistics:", e)
+            print("DB: get_statistics_money() error:", e)
             return ["----"]
         finally:
             cursor.close()
@@ -120,13 +85,15 @@ class DataBase:
         cursor = connect.cursor()
 
         try:
-            cursor.execute("SELECT concat(SUM(v.cash::numeric)) "
-                           "FROM visitors AS v "
-                           f"WHERE v.date BETWEEN '{date_from}' AND '{date_to}';")
+            cursor.execute(
+                "SELECT concat(SUM(v.cash::numeric)) "
+                "FROM visitors AS v "
+                f"WHERE v.date BETWEEN '{date_from}' AND '{date_to}';"
+            )
             money = cursor.fetchone()
             return money[0]
         except Exception as e:
-            print("Error with total money statistics:", e)
+            print("DB: get_total_money() error:", e)
             return ["-"]
         finally:
             cursor.close()
@@ -137,46 +104,66 @@ class DataBase:
         cursor = connect.cursor()
 
         try:
-            cursor.execute("SELECT u.fullname "
-                           "FROM users AS u "
-                           f"WHERE u.user_id = {user_id};")
+            cursor.execute(
+                "SELECT e.fullname "
+                "FROM employees AS e "
+                f"WHERE e.user_id = {user_id};"
+            )
             name = cursor.fetchone()
             return name[0]
         except Exception as e:
-            print("Error with get_current_name():", e)
+            print("DB: get_current_name() error:", e)
         finally:
             cursor.close()
             connect.close()
 
-    def add_admin(self, fullname, user_id, username):
-        connect = self.connect_to_db()
-        cursor = connect.cursor()
-
-        try:
-            cursor.execute(
-                "INSERT INTO admins (fullname, user_id, username) "
-                f"VALUES ('{fullname}', {user_id}, '{username}')"
-            )
-            connect.commit()
-        except Exception as e:
-            print("DB: add_admin() error:", e)
-        finally:
-            cursor.close()
-            connect.close()
-
-    def get_admins(self):
+    def get_admins_user_ids(self):
         connect = self.connect_to_db()
         cursor = connect.cursor()
 
         try:
             cursor.execute(
                 "SELECT user_id "
-                "FROM admins"
+                "FROM admins;"
             )
             admins = [x[0] for x in cursor.fetchall()]
             return admins
         except Exception as e:
-            print("DB: get_admins() error:", e)
+            print("DB: get_admins_user_ids() error:", e)
+        finally:
+            cursor.close()
+            connect.close()
+
+    def get_employees_user_ids(self):
+        connect = self.connect_to_db()
+        cursor = connect.cursor()
+
+        try:
+            cursor.execute(
+                "SELECT user_id "
+                "FROM employees;"
+            )
+            employees = [x[0] for x in cursor.fetchall()]
+            return employees
+        except Exception as e:
+            print("DB: get_employees_user_ids() error:", e)
+        finally:
+            cursor.close()
+            connect.close()
+
+    def get_chat_ids(self):
+        connect = self.connect_to_db()
+        cursor = connect.cursor()
+
+        try:
+            cursor.execute(
+                "SELECT chat_id "
+                "FROM places;"
+            )
+            chat_ids = [x[0] for x in cursor.fetchall()]
+            return chat_ids
+        except Exception as e:
+            print("DB: get_chat_ids() error:", e)
         finally:
             cursor.close()
             connect.close()
@@ -188,11 +175,57 @@ class DataBase:
         try:
             cursor.execute(
                 "INSERT INTO employees (fullname, user_id, username) "
-                f"VALUES ('{fullname}', {user_id}, '{username}')"
+                f"VALUES ('{fullname}', {user_id}, '{username}') "
+                "ON CONFLICT (user_id) DO UPDATE "
+                "SET fullname = excluded.fullname,"
+                "username = excluded.username;"
             )
             connect.commit()
         except Exception as e:
             print("DB: add_employee() error:", e)
+        finally:
+            cursor.close()
+            connect.close()
+
+    def add_admin(self, fullname, user_id, username):
+        connect = self.connect_to_db()
+        cursor = connect.cursor()
+
+        try:
+            cursor.execute(
+                "INSERT INTO admins (fullname, user_id, username) "
+                f"VALUES ('{fullname}', {user_id}, '{username}') "
+                "ON CONFLICT (user_id) DO UPDATE "
+                "SET fullname = excluded.fullname,"
+                "username = excluded.username;"
+            )
+            connect.commit()
+
+            self.add_employee(
+                user_id=user_id,
+                fullname=fullname,
+                username=username,
+            )
+        except Exception as e:
+            print("DB: add_admin() error:", e)
+        finally:
+            cursor.close()
+            connect.close()
+
+    def add_place(self, title, chat_id):
+        connect = self.connect_to_db()
+        cursor = connect.cursor()
+
+        try:
+            cursor.execute(
+                "INSERT INTO places (place, chat_id) "
+                f"VALUES ('{title}', {chat_id}) "
+                "ON CONFLICT (chat_id) DO UPDATE "
+                "SET place = excluded.place;"
+            )
+            connect.commit()
+        except Exception as e:
+            print("DB: add_place() error:", e)
         finally:
             cursor.close()
             connect.close()
@@ -204,12 +237,46 @@ class DataBase:
         try:
             cursor.execute(
                 "SELECT fullname, username "
-                "FROM employees"
+                "FROM employees;"
             )
             employees = [(x[0], x[1]) for x in cursor.fetchall()]
             return employees
         except Exception as e:
             print("DB: get_employees() error:", e)
+        finally:
+            cursor.close()
+            connect.close()
+
+    def get_admins(self):
+        connect = self.connect_to_db()
+        cursor = connect.cursor()
+
+        try:
+            cursor.execute(
+                "SELECT fullname, username "
+                "FROM admins;"
+            )
+            admins = [(x[0], x[1]) for x in cursor.fetchall()]
+            return admins
+        except Exception as e:
+            print("DB: get_admins() error:", e)
+        finally:
+            cursor.close()
+            connect.close()
+
+    def get_places(self):
+        connect = self.connect_to_db()
+        cursor = connect.cursor()
+
+        try:
+            cursor.execute(
+                "SELECT place, chat_id "
+                "FROM places;"
+            )
+            places = [(x[0], x[1]) for x in cursor.fetchall()]
+            return places
+        except Exception as e:
+            print("DB: get_places() error:", e)
         finally:
             cursor.close()
             connect.close()
@@ -221,11 +288,48 @@ class DataBase:
         try:
             cursor.execute(
                 "DELETE FROM employees "
-                f"WHERE fullname='{fullname}' AND username='{username}'"
+                f"WHERE fullname='{fullname}' AND username='{username}';"
             )
             connect.commit()
         except Exception as e:
             print("DB: delete_employee() error:", e)
+        finally:
+            cursor.close()
+            connect.close()
+
+    def delete_admin(self, fullname, username):
+        connect = self.connect_to_db()
+        cursor = connect.cursor()
+
+        try:
+            cursor.execute(
+                "DELETE FROM admins "
+                f"WHERE fullname='{fullname}' AND username='{username}';"
+            )
+            connect.commit()
+
+            self.delete_employee(
+                fullname=fullname,
+                username=username,
+            )
+        except Exception as e:
+            print("DB: delete_admin() error:", e)
+        finally:
+            cursor.close()
+            connect.close()
+
+    def delete_place(self, title):
+        connect = self.connect_to_db()
+        cursor = connect.cursor()
+
+        try:
+            cursor.execute(
+                "DELETE FROM places "
+                f"WHERE place='{title}';"
+            )
+            connect.commit()
+        except Exception as e:
+            print("DB: delete_place() error:", e)
         finally:
             cursor.close()
             connect.close()
