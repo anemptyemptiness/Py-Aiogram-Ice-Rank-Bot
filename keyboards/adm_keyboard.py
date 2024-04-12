@@ -129,7 +129,7 @@ def create_watching_employees_kb() -> InlineKeyboardMarkup:
 def create_watching_admins_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🠔 Назад", callback_data="go_back")],
+            [InlineKeyboardButton(text="➢ Назад", callback_data="go_back")],
         ]
     )
 
@@ -137,6 +137,6 @@ def create_watching_admins_kb() -> InlineKeyboardMarkup:
 def create_watching_places_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🠔 Назад", callback_data="go_back")],
+            [InlineKeyboardButton(text="➢ Назад", callback_data="go_back")],
         ]
     )

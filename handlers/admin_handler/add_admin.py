@@ -77,19 +77,26 @@ async def warning_add_admin_name_command(message: Message):
 
 @router_add_adm.message(StateFilter(FSMAdmin.add_admin_username), F.text)
 async def process_add_admin_phone_command(message: Message, state: FSMContext):
-    await state.update_data(admin_username=message.text)
+    if "@" in message.text:
+        await state.update_data(admin_username=message.text)
 
-    data = await state.get_data()
+        data = await state.get_data()
 
-    await message.answer(
-        text="Данные:\n"
-             f"id: {data['admin_id']}\n"
-             f"имя: {data['admin_name']}\n"
-             f"username: {data['admin_username']}\n\n"
-             "Всё ли корректно?",
-        reply_markup=check_add_admin(),
-    )
-    await state.set_state(FSMAdmin.check_admin)
+        await message.answer(
+            text="Данные:\n"
+                 f"id: {data['admin_id']}\n"
+                 f"имя: {data['admin_name']}\n"
+                 f"username: {data['admin_username']}\n\n"
+                 "Всё ли корректно?",
+            reply_markup=check_add_admin(),
+        )
+        await state.set_state(FSMAdmin.check_admin)
+    else:
+        await message.answer(
+            text="Нужно прислать username в таком формате:\n\n"
+                 "<em>@test_username</em>",
+            parse_mode="html",
+        )
 
 
 @router_add_adm.message(StateFilter(FSMAdmin.add_admin_username))

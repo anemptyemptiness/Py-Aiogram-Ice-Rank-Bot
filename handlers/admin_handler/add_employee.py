@@ -122,19 +122,26 @@ async def warning_add_emp_name_command(message: Message):
 
 @router_admin.message(StateFilter(FSMAdmin.add_employee_username), F.text)
 async def process_add_emp_phone_command(message: Message, state: FSMContext):
-    await state.update_data(employee_username=message.text)
+    if "@" in message.text:
+        await state.update_data(employee_username=message.text)
 
-    data = await state.get_data()
+        data = await state.get_data()
 
-    await message.answer(
-        text="Данные:\n"
-             f"id: {data['employee_id']}\n"
-             f"имя: {data['employee_name']}\n"
-             f"username: {data['employee_username']}\n\n"
-             "Всё ли корректно?",
-        reply_markup=check_add_employee(),
-    )
-    await state.set_state(FSMAdmin.check_employee)
+        await message.answer(
+            text="Данные:\n"
+                 f"id: {data['employee_id']}\n"
+                 f"имя: {data['employee_name']}\n"
+                 f"username: {data['employee_username']}\n\n"
+                 "Всё ли корректно?",
+            reply_markup=check_add_employee(),
+        )
+        await state.set_state(FSMAdmin.check_employee)
+    else:
+        await message.answer(
+            text="Нужно прислать username в таком формате:\n\n"
+                 "<em>@test_username</em>",
+            parse_mode="html",
+        )
 
 
 @router_admin.message(StateFilter(FSMAdmin.add_employee_username))
