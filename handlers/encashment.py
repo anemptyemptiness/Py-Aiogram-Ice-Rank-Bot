@@ -18,7 +18,7 @@ from db import DB
 
 router_encashment = Router()
 router_encashment.message.middleware(middleware=AlbumsMiddleware(2))
-place_chat: dict = {title: chat_id for title, chat_id in DB.get_places()}
+place_chat: dict = {title: chat_id for title, chat_id in DB.get_places_chat_ids()}
 
 
 async def report(dictionary: Dict[str, Any], date: str, user_id: Union[str, int]) -> str:
@@ -80,7 +80,7 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
         await message.bot.send_message(
             text=f"Encashment report error: {e}\n"
                  f"User id: {message.chat.id}",
-            chat_id=config.admins[0],
+            chat_id=292972814,
             reply_markup=ReplyKeyboardRemove(),
         )
         await message.answer(

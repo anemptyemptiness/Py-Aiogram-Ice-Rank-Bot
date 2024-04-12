@@ -17,7 +17,7 @@ from db import DB
 
 router_daily = Router()
 router_daily.message.middleware(middleware=AlbumsMiddleware(2))
-place_chat: dict = {title: chat_id for title, chat_id in DB.get_places()}
+place_chat: dict = {title: chat_id for title, chat_id in DB.get_places_chat_ids()}
 
 
 async def report(dictionary: Dict[str, Any], date: str, user_id: Union[str, int]) -> str:

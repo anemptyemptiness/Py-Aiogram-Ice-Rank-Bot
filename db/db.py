@@ -106,6 +106,23 @@ class DataBase:
             cursor.close()
             connect.close()
 
+    def get_places_chat_ids(self):
+        connect = self.connect_to_db()
+        cursor = connect.cursor()
+
+        try:
+            cursor.execute(
+                "SELECT place, chat_id "
+                "FROM places;"
+            )
+            places = [(x[0], x[1]) for x in cursor.fetchall()]
+            return places
+        except Exception as e:
+            print("DB: get_places_chat_ids() error:", e)
+        finally:
+            cursor.close()
+            connect.close()
+
     def add_employee(self, fullname, user_id, username):
         connect = self.connect_to_db()
         cursor = connect.cursor()
