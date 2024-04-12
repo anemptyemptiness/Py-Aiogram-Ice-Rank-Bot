@@ -58,7 +58,7 @@ async def process_cancel_command(callback: CallbackQuery, state: FSMContext):
 @router_authorise.message(Command(commands="start"), StateFilter(default_state))
 async def process_command_start(message: Message, state: FSMContext):
     await message.answer(
-        text=f"Добро пожаловать, {message.from_user.full_name}!\n\n"
+        text=f"Здравствуйте, {message.from_user.full_name}!\n\n"
              "Используйте меню в левой нижней части экрана, чтобы работать с ботом"
     )
 
