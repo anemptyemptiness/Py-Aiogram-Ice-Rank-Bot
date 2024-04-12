@@ -7,6 +7,7 @@ from keyboards.adm_keyboard import create_employee_list_kb, create_admin_kb, cre
 from callbacks.employee import EmployeeCallbackFactory
 from fsm.fsm import FSMAdmin
 from .add_employee import router_admin
+from db import DB
 
 router_show_emp = Router()
 router_admin.include_router(router_show_emp)
@@ -34,13 +35,15 @@ async def process_go_back_command(callback: CallbackQuery, state: FSMContext):
 
 @router_show_emp.callback_query(StateFilter(FSMAdmin.watching_employees), EmployeeCallbackFactory.filter())
 async def process_watching_info_command(callback: CallbackQuery, callback_data: EmployeeCallbackFactory, state: FSMContext):
-    await state.update_data(fullname=callback_data.fullname)
-    await state.update_data(username=callback_data.username)
+    fullname, username = DB.get_current_employee_by_id(user_id=callback_data.user_id)
+
+    await state.update_data(fullname=fullname)
+    await state.update_data(username=username)
 
     await callback.message.edit_text(
         text="Информация:\n\n"
-             f"Имя: {callback_data.fullname}\n"
-             f"username: {callback_data.username}",
+             f"Имя: {fullname}\n"
+             f"username: {username}",
         reply_markup=create_watching_employees_kb(),
     )
     await callback.answer()

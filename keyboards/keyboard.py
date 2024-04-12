@@ -1,15 +1,25 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from callbacks.place import PlaceCallbackFactory
+from db import DB
 
 
 def create_places_kb() -> InlineKeyboardMarkup:
+    kb = []
+
+    for title, chat_id in DB.get_places_chat_id_title():
+        kb.append([
+            InlineKeyboardButton(text=title, callback_data=PlaceCallbackFactory(
+                title=title,
+                chat_id=int(chat_id),
+                ).pack(),
+            )
+        ])
+
+    kb.append([InlineKeyboardButton(text="Отмена", callback_data="cancel")])
+
     return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Мега Белая Дача", callback_data="place_mega_belaya_dacha")],
-            [InlineKeyboardButton(text="Мега Нижний Новгород", callback_data="place_mega_nizh_novgorod")],
-            [InlineKeyboardButton(text="Новая Рига Аутлет", callback_data="place_novaya_riga_autlet")],
-            [InlineKeyboardButton(text="Отмена", callback_data="cancel")],
-        ],
+        inline_keyboard=kb,
     )
 
 

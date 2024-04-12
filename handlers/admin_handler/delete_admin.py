@@ -25,13 +25,15 @@ async def process_del_admin_command(callback: CallbackQuery, state: FSMContext):
 
 @router_del_adm.callback_query(StateFilter(FSMAdmin.which_admin_to_delete), AdminCallbackFactory.filter())
 async def process_which_admin_to_del_command(callback: CallbackQuery, callback_data: AdminCallbackFactory, state: FSMContext):
-    await state.update_data(fullname=callback_data.fullname)
-    await state.update_data(username=callback_data.username)
+    fullname, username = DB.get_current_admin_by_id(user_id=callback_data.user_id)
+
+    await state.update_data(fullname=fullname)
+    await state.update_data(username=username)
 
     await callback.message.edit_text(
         text="Информация:\n\n"
-             f"Имя: {callback_data.fullname}\n"
-             f"username: {callback_data.username}",
+             f"Имя: {fullname}\n"
+             f"username: {username}",
         reply_markup=create_delete_kb(),
     )
     await callback.answer()

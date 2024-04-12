@@ -13,6 +13,7 @@ from middleware.album_middleware import AlbumsMiddleware
 from lexicon.lexicon_ru import RUSSIAN_WEEK_DAYS
 from config.config import config
 from fsm.fsm import FSMFinishShift
+from callbacks.place import PlaceCallbackFactory
 from db import DB
 
 router_finish = Router()
@@ -109,47 +110,13 @@ async def process_start_finish_shift_command(message: Message, state: FSMContext
     await state.set_state(FSMFinishShift.place)
 
 
-@router_finish.callback_query(StateFilter(FSMFinishShift.place), F.data == "place_mega_belaya_dacha")
-async def process_mega_belaya_dacha_command(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(place="Мега Белая Дача")
+@router_finish.callback_query(StateFilter(FSMFinishShift.place), PlaceCallbackFactory.filter())
+async def process_place_command(callback: CallbackQuery, callback_data: PlaceCallbackFactory, state: FSMContext):
+    await state.update_data(place=callback_data.title)
     await callback.message.delete_reply_markup()
     await callback.message.edit_text(
         text="Пожалуйста, выберите свою рабочую точку из списка <b>ниже</b>\n\n"
-             "➢ Мега Белая Дача",
-        parse_mode="html",
-    )
-    await callback.message.answer(
-        text="Дезинфекция произведена?",
-        reply_markup=create_yes_no_kb(),
-    )
-    await callback.answer()
-    await state.set_state(FSMFinishShift.is_disinfection)
-
-
-@router_finish.callback_query(StateFilter(FSMFinishShift.place), F.data == "place_mega_nizh_novgorod")
-async def process_nizhniy_novgorod_command(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(place="Мега Нижний Новгород")
-    await callback.message.delete_reply_markup()
-    await callback.message.edit_text(
-        text="Пожалуйста, выберите свою рабочую точку из списка <b>ниже</b>\n\n"
-             "➢ Мега Нижний Новгород",
-        parse_mode="html",
-    )
-    await callback.message.answer(
-        text="Дезинфекция произведена?",
-        reply_markup=create_yes_no_kb(),
-    )
-    await callback.answer()
-    await state.set_state(FSMFinishShift.is_disinfection)
-
-
-@router_finish.callback_query(StateFilter(FSMFinishShift.place), F.data == "place_novaya_riga_autlet")
-async def process_novaya_riga_command(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(place="Новая Рига Аутлет")
-    await callback.message.delete_reply_markup()
-    await callback.message.edit_text(
-        text="Пожалуйста, выберите свою рабочую точку из списка <b>ниже</b>\n\n"
-             "➢ Новая Рига Аутлет",
+             f"➢ {callback_data.title}",
         parse_mode="html",
     )
     await callback.message.answer(

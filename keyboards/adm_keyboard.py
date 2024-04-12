@@ -57,13 +57,12 @@ def check_add_place() -> InlineKeyboardMarkup:
 def create_employee_list_kb() -> InlineKeyboardMarkup:
     kb = []
 
-    for fullname, username in DB.get_employees():
+    for fullname, user_id in DB.get_employees_fullnames_ids():
         kb.append([
             InlineKeyboardButton(
                 text=f"{fullname}",
                 callback_data=EmployeeCallbackFactory(
-                    username=username,
-                    fullname=fullname,
+                    user_id=user_id,
                 ).pack(),
             )
         ])
@@ -76,13 +75,12 @@ def create_employee_list_kb() -> InlineKeyboardMarkup:
 def create_admin_list_kb() -> InlineKeyboardMarkup:
     kb = []
 
-    for fullname, username in DB.get_admins():
+    for fullname, user_id in DB.get_admins_fullnames_ids():
         kb.append([
             InlineKeyboardButton(
                 text=f"{fullname}",
                 callback_data=AdminCallbackFactory(
-                    username=username,
-                    fullname=fullname,
+                    user_id=user_id,
                 ).pack(),
             )
         ])

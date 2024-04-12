@@ -11,8 +11,8 @@ from aiogram.exceptions import TelegramBadRequest
 from keyboards.keyboard import create_cancel_kb, create_yes_no_kb, create_places_kb
 from fsm.fsm import FSMDailyChecking
 from middleware.album_middleware import AlbumsMiddleware
-from config.config import config
 from lexicon.lexicon_ru import RUSSIAN_WEEK_DAYS
+from callbacks.place import PlaceCallbackFactory
 from db import DB
 
 router_daily = Router()
@@ -80,7 +80,7 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
         await message.bot.send_message(
             text=f"Daily checking report error: {e}\n"
                  f"User id: {message.chat.id}",
-            chat_id=config.admins[0],
+            chat_id=292972814,
             reply_markup=ReplyKeyboardRemove(),
         )
         await message.answer(
@@ -104,47 +104,13 @@ async def process_start_daily_check_command(message: Message, state: FSMContext)
     await state.set_state(FSMDailyChecking.place)
 
 
-@router_daily.callback_query(StateFilter(FSMDailyChecking.place), F.data == "place_mega_belaya_dacha")
-async def process_mega_belaya_dacha_command(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(place="Мега Белая Дача")
+@router_daily.callback_query(StateFilter(FSMDailyChecking.place), PlaceCallbackFactory.filter())
+async def process_place_command(callback: CallbackQuery, callback_data: PlaceCallbackFactory, state: FSMContext):
+    await state.update_data(place=callback_data.title)
     await callback.message.delete_reply_markup()
     await callback.message.edit_text(
         text="Пожалуйста, выберите свою рабочую точку из списка <b>ниже</b>\n\n"
-             "➢ Мега Белая Дача",
-        parse_mode="html",
-    )
-    await callback.message.answer(
-        text="Количество оплат сходится с количеством посетителей?",
-        reply_markup=create_yes_no_kb(),
-    )
-    await callback.answer()
-    await state.set_state(FSMDailyChecking.check_people_pays)
-
-
-@router_daily.callback_query(StateFilter(FSMDailyChecking.place), F.data == "place_mega_nizh_novgorod")
-async def process_nizhniy_novgorod_command(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(place="Мега Нижний Новгород")
-    await callback.message.delete_reply_markup()
-    await callback.message.edit_text(
-        text="Пожалуйста, выберите свою рабочую точку из списка <b>ниже</b>\n\n"
-             "➢ Мега Нижний Новгород",
-        parse_mode="html",
-    )
-    await callback.message.answer(
-        text="Количество оплат сходится с количеством посетителей?",
-        reply_markup=create_yes_no_kb(),
-    )
-    await callback.answer()
-    await state.set_state(FSMDailyChecking.check_people_pays)
-
-
-@router_daily.callback_query(StateFilter(FSMDailyChecking.place), F.data == "place_novaya_riga_autlet")
-async def process_novaya_riga_command(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(place="Новая Рига Аутлет")
-    await callback.message.delete_reply_markup()
-    await callback.message.edit_text(
-        text="Пожалуйста, выберите свою рабочую точку из списка <b>ниже</b>\n\n"
-             "➢ Новая Рига Аутлет",
+             f"➢ {callback_data.title}",
         parse_mode="html",
     )
     await callback.message.answer(

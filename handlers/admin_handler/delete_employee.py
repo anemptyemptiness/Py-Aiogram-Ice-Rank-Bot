@@ -25,13 +25,15 @@ async def process_del_emp_command(callback: CallbackQuery, state: FSMContext):
 
 @router_del_emp.callback_query(StateFilter(FSMAdmin.which_employee_to_delete), EmployeeCallbackFactory.filter())
 async def process_which_emp_to_del_command(callback: CallbackQuery, callback_data: EmployeeCallbackFactory, state: FSMContext):
-    await state.update_data(fullname=callback_data.fullname)
-    await state.update_data(username=callback_data.username)
+    fullname, username = DB.get_current_employee_by_id(user_id=callback_data.user_id)
+
+    await state.update_data(fullname=fullname)
+    await state.update_data(username=username)
 
     await callback.message.edit_text(
         text="Информация:\n\n"
-             f"Имя: {callback_data.fullname}\n"
-             f"username: {callback_data.username}",
+             f"Имя: {fullname}\n"
+             f"username: {username}",
         reply_markup=create_delete_kb(),
     )
     await callback.answer()
