@@ -36,7 +36,7 @@ def create_yes_no_kb() -> InlineKeyboardMarkup:
 def create_rules_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Согласен", callback_data="agree")],
+            [InlineKeyboardButton(text="Ознакомился", callback_data="agree")],
         ],
     )
 

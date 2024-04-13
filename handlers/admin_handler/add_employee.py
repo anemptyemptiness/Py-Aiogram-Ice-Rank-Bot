@@ -36,6 +36,7 @@ async def process_agree_command(callback: CallbackQuery, state: FSMContext):
         text="Добро пожаловать в админскую панель!",
         reply_markup=create_admin_kb(),
     )
+    await callback.answer()
     await state.set_state(FSMAdmin.in_adm)
 
 
