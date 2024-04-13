@@ -6,7 +6,8 @@ from aiogram.fsm.context import FSMContext
 
 from filters.is_admin import isAdminFilterMessage, isNotAdminFilterCallback
 from keyboards.adm_keyboard import create_admin_kb, check_add_employee
-from keyboards.keyboard import create_cancel_kb
+from keyboards.keyboard import create_cancel_kb, create_rules_kb
+from lexicon.lexicon_ru import rules_adm
 from fsm.fsm import FSMAdmin
 from db import DB
 
@@ -16,6 +17,22 @@ router_admin = Router()
 @router_admin.message(Command(commands="admin"), StateFilter(default_state), isAdminFilterMessage())
 async def process_start_adm_command(message: Message, state: FSMContext):
     await message.answer(
+        text=f"{rules_adm}",
+        reply_markup=create_rules_kb(),
+        parse_mode="html",
+    )
+    await state.set_state(FSMAdmin.rules)
+
+
+@router_admin.callback_query(StateFilter(FSMAdmin.rules), F.data == "agree")
+async def process_agree_command(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete_reply_markup()
+    await callback.message.edit_text(
+        text=f"{rules_adm}\n\n"
+             "➢ Ознакомился",
+        parse_mode="html",
+    )
+    await callback.message.answer(
         text="Добро пожаловать в админскую панель!",
         reply_markup=create_admin_kb(),
     )
