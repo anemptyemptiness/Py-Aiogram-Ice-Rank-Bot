@@ -37,6 +37,7 @@ def create_rules_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Ознакомился", callback_data="agree")],
+            [InlineKeyboardButton(text="Отмена", callback_data="cancel")],
         ],
     )
 
