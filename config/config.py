@@ -16,6 +16,7 @@ class Config:
     password_db: str
     database: str
     host_db: str
+    admin: int
 
 
 def load_config() -> Config:
@@ -27,7 +28,8 @@ def load_config() -> Config:
                   user_db=env("user"),
                   password_db=env("password"),
                   database=env("database"),
-                  host_db=env("host"))
+                  host_db=env("host"),
+                  admin=int(env("admin")),)
 
 
 config: Config = load_config()

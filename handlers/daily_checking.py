@@ -13,6 +13,7 @@ from fsm.fsm import FSMDailyChecking
 from middleware.album_middleware import AlbumsMiddleware
 from lexicon.lexicon_ru import RUSSIAN_WEEK_DAYS
 from callbacks.place import PlaceCallbackFactory
+from config.config import config
 from db import DB
 
 router_daily = Router()
@@ -80,7 +81,7 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
         await message.bot.send_message(
             text=f"Daily checking report error: {e}\n"
                  f"User id: {message.chat.id}",
-            chat_id=292972814,
+            chat_id=config.admin,
             reply_markup=ReplyKeyboardRemove(),
         )
         await message.answer(

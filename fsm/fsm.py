@@ -35,6 +35,16 @@ class FSMDailyChecking(StatesGroup):
 
 class FSMFinishShift(StatesGroup):
     place = State()
+
+    visitors = State()
+    cash = State()
+    online_cash = State()
+    qr_code = State()
+    summary = State()
+    receipts_photo = State()
+    is_benefits = State()
+    benefits_photo = State()
+
     is_disinfection = State()
     ice_rank_on_drying = State()
     is_ice_rank_defects = State()
@@ -49,18 +59,14 @@ class FSMFinishShift(StatesGroup):
 
 class FSMEncashment(StatesGroup):
     place = State()
-    cash = State()
-    online_cash = State()
-    qr_code = State()
-    summary = State()
+    is_encashment = State()
     receipts_photo = State()
-    is_benefits = State()
-    benefits_photo = State()
+    cash = State()
+    date = State()
 
 
 class FSMAdmin(StatesGroup):
     # главное меню
-    rules = State()
     in_adm = State()
 
     # добавление сотрудника в БД

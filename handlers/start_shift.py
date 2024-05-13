@@ -129,7 +129,7 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
         await message.bot.send_message(
             text=f"Start shift report error: {e}\n"
                  f"User id: {message.chat.id}",
-            chat_id=292972814,
+            chat_id=config.admin,
             reply_markup=ReplyKeyboardRemove(),
         )
         await message.answer(

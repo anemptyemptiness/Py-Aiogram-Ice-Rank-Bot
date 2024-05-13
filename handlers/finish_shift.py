@@ -32,8 +32,13 @@ async def report(dictionary: Dict[str, Any], date: str, user_id: Union[str, int]
            f"Есть ли одноразовые носки и шапочки: <em>{'да' if dictionary['is_hats_and_socks'] == 'yes' else 'нет⚠️'}</em>\n" \
            f"Есть ли дефекты у защиты или шлемов: <em>{'да⚠️' if dictionary['is_depend_defects'] == 'yes' else 'нет'}</em>\n" \
            f"Музыка выключена: <em>{'да' if dictionary['is_music'] == 'yes' else 'нет⚠️'}</em>\n" \
-           f"Оповещения выключены: <em>{'да' if dictionary['is_alert_off'] == 'yes' else 'нет⚠️'}</em>\n" \
-           f"Павильон закрыт: <em>{'да' if dictionary['is_working_place_closed'] == 'yes' else 'нет⚠️'}</em>"
+           f"Оповещения выключены: <em>{'да' if dictionary['is_alert_off'] == 'yes' else 'нет⚠️'}</em>\n\n" \
+           f"Наличные: <em>{dictionary['cash']} руб.</em>\n" \
+           f"Безнал: <em>{dictionary['online_cash']} руб.</em>\n" \
+           f"QR-код: <em>{dictionary['qr_code']} руб.</em>\n" \
+           f"Суммарно денег: <em>{dictionary['summary']} руб.</em>\n\n" \
+           f"Число посетителей: <em>{dictionary['visitors']}</em>\n" \
+           f"Льготники: <em>{'были, но <b>нет фотографий льгот</b>' if dictionary['benefits_photo'] == 'no' else 'фото ниже'}</em>"
 
 
 async def send_report(message: Message, state: FSMContext, data: dict, date: str, chat_id: Union[str, int]):
@@ -48,6 +53,34 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
             reply_markup=ReplyKeyboardRemove(),
             parse_mode="html",
         )
+
+        if "receipts_photo" in data:
+            receipts = [
+                InputMediaPhoto(
+                    media=photo_file_id,
+                    caption="Необходимые чеки" if i == 0 else ""
+                ) for i, photo_file_id in enumerate(data["receipts_photo"])
+            ]
+
+            await message.bot.send_media_group(
+                chat_id=chat_id,
+                media=receipts,
+            )
+
+        if data["is_benefits"] == "yes":
+            if "benefits_photo" in data:
+                if data["benefits_photo"] != "no":
+                    benefits = [
+                        InputMediaPhoto(
+                            media=photo_file_id,
+                            caption="Льготники" if i == 0 else ""
+                        ) for i, photo_file_id in enumerate(data["benefits_photo"])
+                    ]
+
+                    await message.bot.send_media_group(
+                        chat_id=chat_id,
+                        media=benefits,
+                    )
 
         if data["is_ice_rank_defects"] == "yes":
             ice_rank_defects = [
@@ -84,7 +117,7 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
         await message.bot.send_message(
             text=f"Finish shift report error: {e}\n"
                  f"User id: {message.chat.id}",
-            chat_id=292972814,
+            chat_id=config.admin,
             reply_markup=ReplyKeyboardRemove(),
         )
         await message.answer(
@@ -120,11 +153,206 @@ async def process_place_command(callback: CallbackQuery, callback_data: PlaceCal
         parse_mode="html",
     )
     await callback.message.answer(
-        text="Дезинфекция произведена?",
-        reply_markup=create_yes_no_kb(),
+        text="Пожалуйста, введите количество посетителей <b>числом</b>\n\n"
+             "<em>Например: 20</em>",
+        reply_markup=create_cancel_kb(),
+        parse_mode="html",
     )
     await callback.answer()
-    await state.set_state(FSMFinishShift.is_disinfection)
+    await state.set_state(FSMFinishShift.visitors)
+
+
+@router_finish.message(StateFilter(FSMFinishShift.visitors), F.text.isdigit())
+async def process_visitors_command(message: Message, state: FSMContext):
+    await state.update_data(visitors=int(message.text))
+    await message.answer(
+        text="Введите суммарное количество наличными за сегодня <b>числом</b>\n\n"
+             "<em>Например: 1000</em>",
+        reply_markup=create_cancel_kb(),
+        parse_mode="html",
+    )
+    await state.set_state(FSMFinishShift.cash)
+
+
+@router_finish.message(StateFilter(FSMFinishShift.visitors))
+async def warning_visitors_command(message: Message):
+    await message.answer(
+        text="Введите количество посетителей за день <b>числом</b>!\n\n"
+             "<em>Например: 20</em>",
+        reply_markup=create_cancel_kb(),
+        parse_mode="html",
+    )
+
+
+@router_finish.message(StateFilter(FSMFinishShift.cash), F.text)
+async def process_cash_command(message: Message, state: FSMContext):
+    await state.update_data(cash=message.text)
+    await message.answer(
+        text="Введите суммарное количество безнала за сегодня <b>числом</b>\n\n"
+             "<em>Например: 1000</em>",
+        reply_markup=create_cancel_kb(),
+        parse_mode="html",
+    )
+    await state.set_state(FSMFinishShift.online_cash)
+
+
+@router_finish.message(StateFilter(FSMFinishShift.cash))
+async def warning_cash_command(message: Message):
+    await message.answer(
+        text="Введите суммарное количество наличных за сегодня <b>числом без каких-либо других символов</b>\n\n"
+             "<em>Например: 1000</em>",
+        reply_markup=create_cancel_kb(),
+        parse_mode="html",
+    )
+
+
+@router_finish.message(StateFilter(FSMFinishShift.online_cash), F.text)
+async def process_online_cash_command(message: Message, state: FSMContext):
+    await state.update_data(online_cash=message.text)
+    await message.answer(
+        text="Введите суммарное количество денег по qr-коду за сегодня <b>числом</b>\n\n"
+             "<em>Например: 1000</em>",
+        reply_markup=create_cancel_kb(),
+        parse_mode="html",
+    )
+    await state.set_state(FSMFinishShift.qr_code)
+
+
+@router_finish.message(StateFilter(FSMFinishShift.online_cash))
+async def warning_online_cash_command(message: Message):
+    await message.answer(
+        text="Введите суммарное количество безнала за сегодня <b>числом без каких-либо других символов</b>\n\n"
+             "<em>Например: 1000</em>",
+        reply_markup=create_cancel_kb(),
+        parse_mode="html",
+    )
+
+
+@router_finish.message(StateFilter(FSMFinishShift.qr_code), F.text)
+async def process_qr_code_command(message: Message, state: FSMContext):
+    await state.update_data(qr_code=message.text)
+    await message.answer(
+        text="Введите общую сумму выручки за сегодня <b>числом</b>",
+        reply_markup=create_cancel_kb(),
+        parse_mode="html",
+    )
+    await state.set_state(FSMFinishShift.summary)
+
+
+@router_finish.message(StateFilter(FSMFinishShift.qr_code))
+async def warning_qr_code_command(message: Message):
+    await message.answer(
+        text="Введите суммарное количество денег по qr-коду за сегодня <b>числом без каких-либо других символов</b>\n\n"
+             "<em>Например: 1000</em>",
+        reply_markup=create_cancel_kb(),
+        parse_mode="html",
+    )
+
+
+@router_finish.message(StateFilter(FSMFinishShift.summary), F.text.isdigit())
+async def process_summary_command(message: Message, state: FSMContext):
+    await state.update_data(summary=float(message.text))
+    await message.answer(
+        text="Пожалуйста, пришлите фото всех необходимых чеков",
+        reply_markup=create_cancel_kb(),
+    )
+    await state.set_state(FSMFinishShift.receipts_photo)
+
+
+@router_finish.message(StateFilter(FSMFinishShift.summary))
+async def warning_summary_command(message: Message):
+    await message.answer(
+        text="Введите общую сумму выручки за сегодня <b>числом</b>",
+        reply_markup=create_cancel_kb(),
+        parse_mode="html",
+    )
+
+
+@router_finish.message(StateFilter(FSMFinishShift.receipts_photo))
+async def process_receipts_photo_command(message: Message, state: FSMContext):
+    if message.photo:
+        if "receipts_photo" not in await state.get_data():
+            await state.update_data(receipts_photo=[message.photo[-1].file_id])
+
+        await message.answer(
+            text="Были ли льготники сегодня?",
+            reply_markup=create_yes_no_kb(),
+        )
+        await state.set_state(FSMFinishShift.is_benefits)
+    else:
+        await message.answer(
+            text="Пожалуйста, пришлите фото всех необходимых чеков",
+            reply_markup=create_cancel_kb(),
+        )
+
+
+@router_finish.callback_query(StateFilter(FSMFinishShift.is_benefits), F.data == "yes")
+async def process_benefits_yes_command(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(is_benefits="yes")
+    await callback.message.delete_reply_markup()
+    await callback.message.edit_text(
+        text="Были ли льготники сегодня?\n\n"
+             "➢ Да"
+    )
+    await callback.message.answer(
+        text="Пожалуйста, пришлите фото льготных удостоверений\n\n"
+             'Если фотографий нет, то напишите <b>"нет фото"</b>',
+        reply_markup=create_cancel_kb(),
+        parse_mode="html",
+    )
+    await callback.answer()
+    await state.set_state(FSMFinishShift.benefits_photo)
+
+
+@router_finish.callback_query(StateFilter(FSMFinishShift.is_benefits), F.data == "no")
+async def process_benefits_no_command(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(is_benefits="no")
+    await callback.message.delete_reply_markup()
+    await callback.message.edit_text(
+        text="Были ли льготники сегодня?\n\n"
+             "➢ Нет"
+    )
+    day_of_week = datetime.now(tz=timezone(timedelta(hours=3.0))).strftime('%A')
+    current_date = datetime.now(tz=timezone(timedelta(hours=3.0))).strftime(f'%d/%m/%Y - {RUSSIAN_WEEK_DAYS[day_of_week]}')
+
+    encashment_dict = await state.get_data()
+
+    await send_report(
+        message=callback.message,
+        state=state,
+        data=encashment_dict,
+        date=current_date,
+        chat_id=place_chat[encashment_dict["place"]],
+    )
+
+    await callback.answer()
+
+
+@router_finish.message(StateFilter(FSMFinishShift.benefits_photo))
+async def process_benefits_photo_command(message: Message, state: FSMContext):
+    if message.photo:
+        if "benefits_photo" not in await state.get_data():
+            await state.update_data(benefits_photo=[message.photo[-1].file_id])
+
+        await message.answer(
+            text="Дезинфекция произведена?",
+            reply_markup=create_yes_no_kb(),
+        )
+        await state.set_state(FSMFinishShift.is_disinfection)
+    elif message.text.lower() == "нет фото":
+        await state.update_data(benefits_photo="no")
+        await message.answer(
+            text="Дезинфекция произведена?",
+            reply_markup=create_yes_no_kb(),
+        )
+        await state.set_state(FSMFinishShift.is_disinfection)
+    else:
+        await message.answer(
+            text="Пожалуйста, пришлите фото льготных удостоверений\n\n"
+                 'Если фотографий нет, то напишите <b>"нет фото"</b>',
+            reply_markup=create_cancel_kb(),
+            parse_mode="html",
+        )
 
 
 @router_finish.callback_query(StateFilter(FSMFinishShift.is_disinfection), F.data == "yes")
