@@ -67,6 +67,7 @@ class FSMEncashment(StatesGroup):
 
 class FSMAdmin(StatesGroup):
     # главное меню
+    rules = State()
     in_adm = State()
 
     # добавление сотрудника в БД
