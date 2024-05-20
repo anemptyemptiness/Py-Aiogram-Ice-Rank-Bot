@@ -1,13 +1,13 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from callbacks.place import PlaceCallbackFactory
-from db import DB
+from db import cached_places
 
 
 def create_places_kb() -> InlineKeyboardMarkup:
     kb = []
 
-    for title, chat_id in DB.get_places_chat_id_title():
+    for title, chat_id in cached_places.items():
         kb.append([
             InlineKeyboardButton(text=title, callback_data=PlaceCallbackFactory(
                 title=title,
@@ -36,8 +36,7 @@ def create_yes_no_kb() -> InlineKeyboardMarkup:
 def create_rules_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Ознакомился", callback_data="agree")],
-            [InlineKeyboardButton(text="Отмена", callback_data="cancel")],
+            [InlineKeyboardButton(text="Согласен", callback_data="agree")],
         ],
     )
 

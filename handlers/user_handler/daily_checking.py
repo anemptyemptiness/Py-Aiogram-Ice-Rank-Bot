@@ -13,19 +13,22 @@ from fsm.fsm import FSMDailyChecking
 from middleware.album_middleware import AlbumsMiddleware
 from lexicon.lexicon_ru import RUSSIAN_WEEK_DAYS
 from callbacks.place import PlaceCallbackFactory
-from config.config import config
-from db import DB
+from db.queries.orm import AsyncOrm
+from config.env_config import config
+from db import cached_places
+import logging
+
+logger = logging.getLogger(__name__)
 
 router_daily = Router()
 router_daily.message.middleware(middleware=AlbumsMiddleware(2))
-place_chat: dict = {title: chat_id for title, chat_id in DB.get_places_chat_ids()}
 
 
 async def report(dictionary: Dict[str, Any], date: str, user_id: Union[str, int]) -> str:
     return f"📔Дневная сверка:\n\n" \
            f"Дата: {date}\n" \
            f"Точка: {dictionary['place']}\n" \
-           f"Имя: {DB.get_current_name(user_id=user_id)}\n\n" \
+           f"Имя: {await AsyncOrm.get_current_name(user_id=user_id)}\n\n" \
            f"Количество оплат равно количеству посетителей: <em>{'да' if dictionary['check_people_pays'] == 'yes' else 'нет'}</em>\n" \
            f"Есть ли дефекты у коньков: <em>{'нет' if dictionary['is_ice_rank_defects'] == 'no' else 'да⚠️'}</em>\n" \
            f"Количество проданных билетов: <em>{dictionary['count_tickets']}</em>\n" \
@@ -78,6 +81,7 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
         )
 
     except TelegramBadRequest as e:
+        logger.exception("Ошибка в daily_checking.py при отправке отчета")
         await message.bot.send_message(
             text=f"Daily checking report error: {e}\n"
                  f"User id: {message.chat.id}",
@@ -358,7 +362,7 @@ async def process_summary_command(message: Message, state: FSMContext):
         state=state,
         data=daily_check_dict,
         date=current_date,
-        chat_id=place_chat[daily_check_dict["place"]],
+        chat_id=cached_places[daily_check_dict["place"]],
     )
 
 

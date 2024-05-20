@@ -2,7 +2,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from callbacks.employee import EmployeeCallbackFactory
 from callbacks.admin import AdminCallbackFactory
 from callbacks.place import PlaceCallbackFactory
-from db import DB
+from db import cached_places, cached_employees_fullname_and_id, cached_admins_fullname_and_id
 
 
 def create_admin_kb() -> InlineKeyboardMarkup:
@@ -17,7 +17,8 @@ def create_admin_kb() -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text="Добавить точку", callback_data="add_place")],
             [InlineKeyboardButton(text="Удалить точку", callback_data="delete_place")],
             [InlineKeyboardButton(text="Список точек", callback_data="places_list")],
-            [InlineKeyboardButton(text="Выход с админки", callback_data="adm_exit")],
+            [InlineKeyboardButton(text="Статистика", callback_data="adm_stats")],
+            [InlineKeyboardButton(text="➢ Выход", callback_data="adm_exit")],
         ]
     )
 
@@ -57,7 +58,7 @@ def check_add_place() -> InlineKeyboardMarkup:
 def create_employee_list_kb() -> InlineKeyboardMarkup:
     kb = []
 
-    for fullname, user_id in DB.get_employees_fullnames_ids():
+    for fullname, user_id in cached_employees_fullname_and_id:
         kb.append([
             InlineKeyboardButton(
                 text=f"{fullname}",
@@ -75,7 +76,7 @@ def create_employee_list_kb() -> InlineKeyboardMarkup:
 def create_admin_list_kb() -> InlineKeyboardMarkup:
     kb = []
 
-    for fullname, user_id in DB.get_admins_fullnames_ids():
+    for fullname, user_id in cached_admins_fullname_and_id:
         kb.append([
             InlineKeyboardButton(
                 text=f"{fullname}",
@@ -93,7 +94,7 @@ def create_admin_list_kb() -> InlineKeyboardMarkup:
 def create_places_list_kb() -> InlineKeyboardMarkup:
     kb = []
 
-    for title, chat_id in DB.get_places():
+    for title, chat_id in cached_places.items():
         kb.append([
             InlineKeyboardButton(
                 text=f"{title}",
@@ -138,5 +139,52 @@ def create_watching_places_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="➢ Назад", callback_data="go_back")],
+        ]
+    )
+
+
+def create_stats_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Посетители", callback_data="adm_stats_visitors")],
+            [InlineKeyboardButton(text="Выручка", callback_data="adm_stats_money")],
+            [
+                InlineKeyboardButton(text="➢ Назад", callback_data="adm_stats_back"),
+                InlineKeyboardButton(text="➢ Выход", callback_data="adm_exit")
+            ],
+        ]
+    )
+
+
+def create_stats_visitors_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Неделя", callback_data="adm_visitors_by_week"),
+                InlineKeyboardButton(text="Месяц", callback_data="adm_visitors_by_month"),
+                InlineKeyboardButton(text="Год", callback_data="adm_visitors_by_year")
+            ],
+            [InlineKeyboardButton(text="Задать дату вручную", callback_data="adm_visitors_by_custom")],
+            [
+                InlineKeyboardButton(text="➢ Назад", callback_data="adm_stats_visitors_back"),
+                InlineKeyboardButton(text="➢ Выход", callback_data="adm_exit")
+            ],
+        ]
+    )
+
+
+def create_stats_money_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Неделя", callback_data="adm_money_by_week"),
+                InlineKeyboardButton(text="Месяц", callback_data="adm_money_by_month"),
+                InlineKeyboardButton(text="Год", callback_data="adm_money_by_year")
+            ],
+            [InlineKeyboardButton(text="Задать дату вручную", callback_data="adm_money_by_custom")],
+            [
+                InlineKeyboardButton(text="➢ Назад", callback_data="adm_stats_money_back"),
+                InlineKeyboardButton(text="➢ Выход", callback_data="adm_exit")
+            ],
         ]
     )

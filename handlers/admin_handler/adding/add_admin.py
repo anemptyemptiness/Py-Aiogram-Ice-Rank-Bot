@@ -6,8 +6,9 @@ from aiogram.fsm.context import FSMContext
 from keyboards.adm_keyboard import create_admin_kb, check_add_admin
 from keyboards.keyboard import create_cancel_kb
 from fsm.fsm import FSMAdmin
-from .add_employee import router_admin
-from db import DB
+from handlers.admin_handler.adding.add_employee import router_admin
+from db.queries.orm import AsyncOrm
+from db import cached_admins, cached_admins_fullname_and_id
 
 router_add_adm = Router()
 router_admin.include_router(router_add_adm)
@@ -77,26 +78,19 @@ async def warning_add_admin_name_command(message: Message):
 
 @router_add_adm.message(StateFilter(FSMAdmin.add_admin_username), F.text)
 async def process_add_admin_phone_command(message: Message, state: FSMContext):
-    if "@" in message.text:
-        await state.update_data(admin_username=message.text)
+    await state.update_data(admin_username=message.text)
 
-        data = await state.get_data()
+    data = await state.get_data()
 
-        await message.answer(
-            text="Данные:\n"
-                 f"id: {data['admin_id']}\n"
-                 f"имя: {data['admin_name']}\n"
-                 f"username: {data['admin_username']}\n\n"
-                 "Всё ли корректно?",
-            reply_markup=check_add_admin(),
-        )
-        await state.set_state(FSMAdmin.check_admin)
-    else:
-        await message.answer(
-            text="Нужно прислать username в таком формате:\n\n"
-                 "<em>@test_username</em>",
-            parse_mode="html",
-        )
+    await message.answer(
+        text="Данные:\n"
+             f"id: {data['admin_id']}\n"
+             f"имя: {data['admin_name']}\n"
+             f"username: {data['admin_username']}\n\n"
+             "Всё ли корректно?",
+        reply_markup=check_add_admin(),
+    )
+    await state.set_state(FSMAdmin.check_admin)
 
 
 @router_add_adm.message(StateFilter(FSMAdmin.add_admin_username))
@@ -118,11 +112,13 @@ async def warning_add_admin_username_command(message: Message):
 async def process_access_admin_command(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
-    DB.add_admin(
+    await AsyncOrm.add_admin(
         fullname=data["admin_name"],
         user_id=data["admin_id"],
         username=data["admin_username"],
     )
+    cached_admins.append(data["admin_id"])
+    cached_admins_fullname_and_id.append((data["admin_name"], data["admin_id"]))
 
     await callback.message.answer(
         text=f"Администратор <b>{data['admin_name']}</b> с id=<b>{data['admin_id']}</b> "

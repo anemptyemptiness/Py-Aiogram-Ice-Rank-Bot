@@ -67,7 +67,6 @@ class FSMEncashment(StatesGroup):
 
 class FSMAdmin(StatesGroup):
     # главное меню
-    rules = State()
     in_adm = State()
 
     # добавление сотрудника в БД
@@ -120,3 +119,19 @@ class FSMAdmin(StatesGroup):
     # получить список рабочих точек
     watching_place = State()
     current_place = State()
+
+
+class FSMStatistics(StatesGroup):
+    in_stats = State()
+    go_back = State()
+    exit = State()
+
+
+class FSMStatisticsVisitors(StatesGroup):
+    in_stats = State()
+    custom_date = State()
+
+
+class FSMStatisticsMoney(StatesGroup):
+    in_stats = State()
+    custom_date = State()

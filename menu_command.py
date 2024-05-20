@@ -1,7 +1,8 @@
+from aiogram import Bot
 from aiogram import types
 
 
-async def set_default_commands(bot):
+async def set_default_commands(bot: Bot):
     await bot.set_my_commands([
         types.BotCommand(command="start_shift", description="Открыть смену"),
         types.BotCommand(command="daily_checking", description="Дневная сверка"),

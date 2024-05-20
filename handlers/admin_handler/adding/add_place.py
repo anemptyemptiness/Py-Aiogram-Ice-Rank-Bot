@@ -6,8 +6,9 @@ from aiogram.fsm.context import FSMContext
 from keyboards.adm_keyboard import create_admin_kb, check_add_place
 from keyboards.keyboard import create_cancel_kb
 from fsm.fsm import FSMAdmin
-from .add_employee import router_admin
-from db import DB
+from handlers.admin_handler.adding.add_employee import router_admin
+from db.queries.orm import AsyncOrm
+from db import cached_places, cached_chat_ids
 
 router_add_place = Router()
 router_admin.include_router(router_add_place)
@@ -80,10 +81,12 @@ async def warning_collect_place_id_chat_command(message: Message):
 async def process_accept_place_command(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
-    DB.add_place(
+    await AsyncOrm.add_place(
         title=data["title"],
         chat_id=data["chat_id"],
     )
+    cached_places[data["title"]] = data["chat_id"]
+    cached_chat_ids.append(data["chat_id"])
 
     await callback.message.answer(
         text=f'Рабочая точка "{data["title"]}" с chat_id={data["chat_id"]} <b>успешно</b> добавлена!',

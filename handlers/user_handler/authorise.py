@@ -56,7 +56,7 @@ async def process_cancel_command(callback: CallbackQuery, state: FSMContext):
 
 
 @router_authorise.message(Command(commands="start"), StateFilter(default_state))
-async def process_command_start(message: Message, state: FSMContext):
+async def process_command_start(message: Message):
     await message.answer(
         text=f"Здравствуйте, {message.from_user.full_name}!\n\n"
              "Используйте меню в левой нижней части экрана, чтобы работать с ботом"
@@ -68,3 +68,8 @@ async def warning_default(message: Message):
     await message.answer(
         text="Выберите нужную Вам команду из выпадающего меню"
     )
+
+
+@router_authorise.callback_query(StateFilter(default_state))
+async def warning_any_callback_without_command(callback: CallbackQuery):
+    await callback.answer(text="Вы не можете нажать на кнопку вне команды")

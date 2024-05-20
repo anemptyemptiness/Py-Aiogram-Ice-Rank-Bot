@@ -29,7 +29,7 @@ def load_config() -> Config:
                   password_db=env("password"),
                   database=env("database"),
                   host_db=env("host"),
-                  admin=int(env("admin")),)
+                  admin=int(env("admin")))
 
 
 config: Config = load_config()

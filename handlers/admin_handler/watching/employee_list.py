@@ -6,8 +6,8 @@ from aiogram.fsm.context import FSMContext
 from keyboards.adm_keyboard import create_employee_list_kb, create_admin_kb, create_watching_employees_kb
 from callbacks.employee import EmployeeCallbackFactory
 from fsm.fsm import FSMAdmin
-from .add_employee import router_admin
-from db import DB
+from handlers.admin_handler.adding.add_employee import router_admin
+from db.queries.orm import AsyncOrm
 
 router_show_emp = Router()
 router_admin.include_router(router_show_emp)
@@ -35,7 +35,7 @@ async def process_go_back_command(callback: CallbackQuery, state: FSMContext):
 
 @router_show_emp.callback_query(StateFilter(FSMAdmin.watching_employees), EmployeeCallbackFactory.filter())
 async def process_watching_info_command(callback: CallbackQuery, callback_data: EmployeeCallbackFactory, state: FSMContext):
-    fullname, username = DB.get_current_employee_by_id(user_id=callback_data.user_id)
+    fullname, username = await AsyncOrm.get_employee_by_id(user_id=callback_data.user_id)
 
     await state.update_data(fullname=fullname)
     await state.update_data(username=username)

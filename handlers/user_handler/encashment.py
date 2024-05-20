@@ -12,20 +12,23 @@ from fsm.fsm import FSMEncashment
 from keyboards.keyboard import create_cancel_kb, create_yes_no_kb, create_places_kb
 from middleware.album_middleware import AlbumsMiddleware
 from lexicon.lexicon_ru import RUSSIAN_WEEK_DAYS
-from config.config import config
+from config.env_config import config
 from callbacks.place import PlaceCallbackFactory
-from db import DB
+from db import cached_places
+from db.queries.orm import AsyncOrm
+import logging
+
+logger = logging.getLogger(__name__)
 
 router_encashment = Router()
 router_encashment.message.middleware(middleware=AlbumsMiddleware(2))
-place_chat: dict = {title: chat_id for title, chat_id in DB.get_places_chat_ids()}
 
 
 async def report(dictionary: Dict[str, Any], date: str, user_id: Union[str, int]) -> str:
     return f"📝 Инкассация:\n\n" \
            f"Дата: {date}\n" \
            f"Точка: {dictionary['place']}\n" \
-           f"Имя: {DB.get_current_name(user_id=user_id)}\n\n" \
+           f"Имя: {await AsyncOrm.get_current_name(user_id=user_id)}\n\n" \
            f"Сумма инкассации: <em>{dictionary['cash']}</em>\n" \
            f"Дата инкассации: <em>{dictionary['date']}</em>"
 
@@ -60,6 +63,7 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
             reply_markup=ReplyKeyboardRemove(),
         )
     except TelegramBadRequest as e:
+        logger.exception("Ошибка в encashment.py при отправке отчета")
         await message.bot.send_message(
             text=f"Encashment report error: {e}\n"
                  f"User id: {message.chat.id}",
@@ -139,7 +143,7 @@ async def process_is_encashment_no_command(callback: CallbackQuery, state: FSMCo
                  f"Точка: {encashment_dict['place']}\n"
                  f"Имя: {await AsyncOrm.get_current_name(user_id=callback.message.chat.id)}\n\n"
                  "⚠️Инкассации нет!",
-            chat_id=place_chat[encashment_dict["place"]],
+            chat_id=cached_places[encashment_dict["place"]],
         )
         await callback.message.answer(
             text="Спасибо большое за информацию!"
@@ -217,7 +221,7 @@ async def process_date_command(message: Message, state: FSMContext):
         state=state,
         data=encashment_dict,
         date=current_date,
-        chat_id=place_chat[encashment_dict["place"]],
+        chat_id=cached_places[encashment_dict["place"]],
     )
 
 

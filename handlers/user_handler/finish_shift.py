@@ -11,21 +11,24 @@ from aiogram.exceptions import TelegramBadRequest
 from keyboards.keyboard import create_places_kb, create_cancel_kb, create_yes_no_kb
 from middleware.album_middleware import AlbumsMiddleware
 from lexicon.lexicon_ru import RUSSIAN_WEEK_DAYS
-from config.config import config
+from config.env_config import config
 from fsm.fsm import FSMFinishShift
 from callbacks.place import PlaceCallbackFactory
-from db import DB
+from db import cached_places
+from db.queries.orm import AsyncOrm
+import logging
+
+logger = logging.getLogger(__name__)
 
 router_finish = Router()
 router_finish.message.middleware(middleware=AlbumsMiddleware(2))
-place_chat: dict = {title: chat_id for title, chat_id in DB.get_places_chat_ids()}
 
 
 async def report(dictionary: Dict[str, Any], date: str, user_id: Union[str, int]) -> str:
     return f"📝Закрытие смены:\n\n" \
            f"Дата: {date}\n" \
            f"Точка: {dictionary['place']}\n" \
-           f"Имя: {DB.get_current_name(user_id=user_id)}\n\n" \
+           f"Имя: {await AsyncOrm.get_current_name(user_id=user_id)}\n\n" \
            f"Произведена дезинфекция: <em>{'да' if dictionary['is_disinfection'] == 'yes' else 'нет⚠️'}</em>\n" \
            f"Коньки на сушке: <em>{'да' if dictionary['ice_rank_on_drying'] == 'yes' else 'нет⚠️'}</em>\n" \
            f"Есть ли дефекты у коньков: <em>{'да⚠️' if dictionary['is_ice_rank_defects'] == 'yes' else 'нет'}</em>\n" \
@@ -108,12 +111,20 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
                 media=depend_defects,
             )
 
+        await AsyncOrm.set_data_to_reports(
+            user_id=message.chat.id,
+            place=data["place"],
+            visitors=data["visitors"],
+            revenue=data["summary"],
+        )
+
         await message.answer(
             text="Отлично! Отчёт успешно отправлен👍🏻",
             reply_markup=ReplyKeyboardRemove(),
         )
 
     except TelegramBadRequest as e:
+        logger.exception("Ошибка в finish_shift.py при отправке отчета")
         await message.bot.send_message(
             text=f"Finish shift report error: {e}\n"
                  f"User id: {message.chat.id}",
@@ -312,19 +323,11 @@ async def process_benefits_no_command(callback: CallbackQuery, state: FSMContext
         text="Были ли льготники сегодня?\n\n"
              "➢ Нет"
     )
-    day_of_week = datetime.now(tz=timezone(timedelta(hours=3.0))).strftime('%A')
-    current_date = datetime.now(tz=timezone(timedelta(hours=3.0))).strftime(f'%d/%m/%Y - {RUSSIAN_WEEK_DAYS[day_of_week]}')
-
-    encashment_dict = await state.get_data()
-
-    await send_report(
-        message=callback.message,
-        state=state,
-        data=encashment_dict,
-        date=current_date,
-        chat_id=place_chat[encashment_dict["place"]],
+    await callback.message.answer(
+        text="Дезинфекция произведена?",
+        reply_markup=create_yes_no_kb(),
     )
-
+    await state.set_state(FSMFinishShift.is_disinfection)
     await callback.answer()
 
 
@@ -635,7 +638,7 @@ async def process_working_place_command(callback: CallbackQuery, state: FSMConte
         state=state,
         data=finish_shift_dict,
         date=current_date,
-        chat_id=place_chat[finish_shift_dict["place"]],
+        chat_id=cached_places[finish_shift_dict["place"]],
     )
 
     await callback.answer()
@@ -660,7 +663,7 @@ async def process_working_place_command(callback: CallbackQuery, state: FSMConte
         state=state,
         data=finish_shift_dict,
         date=current_date,
-        chat_id=place_chat[finish_shift_dict["place"]],
+        chat_id=cached_places[finish_shift_dict["place"]],
     )
 
     await callback.answer()

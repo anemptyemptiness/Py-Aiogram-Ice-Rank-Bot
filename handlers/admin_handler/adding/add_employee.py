@@ -4,39 +4,22 @@ from aiogram.fsm.state import default_state
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 
-from filters.is_admin import isAdminFilterMessage, isNotAdminFilterCallback
+from filters.is_admin import IsAdminFilterMessage, IsNotAdminFilterCallback
 from keyboards.adm_keyboard import create_admin_kb, check_add_employee
-from keyboards.keyboard import create_cancel_kb, create_rules_kb
-from lexicon.lexicon_ru import rules_adm
+from keyboards.keyboard import create_cancel_kb
 from fsm.fsm import FSMAdmin
-from db import DB
+from db.queries.orm import AsyncOrm
+from db import cached_employees, cached_employees_fullname_and_id
 
 router_admin = Router()
 
 
-@router_admin.message(Command(commands="admin"), StateFilter(default_state), isAdminFilterMessage())
+@router_admin.message(Command(commands="admin"), StateFilter(default_state), IsAdminFilterMessage())
 async def process_start_adm_command(message: Message, state: FSMContext):
     await message.answer(
-        text=f"{rules_adm}",
-        reply_markup=create_rules_kb(),
-        parse_mode="html",
-    )
-    await state.set_state(FSMAdmin.rules)
-
-
-@router_admin.callback_query(StateFilter(FSMAdmin.rules), F.data == "agree")
-async def process_agree_command(callback: CallbackQuery, state: FSMContext):
-    await callback.message.delete_reply_markup()
-    await callback.message.edit_text(
-        text=f"{rules_adm}\n\n"
-             "➢ Ознакомился",
-        parse_mode="html",
-    )
-    await callback.message.answer(
         text="Добро пожаловать в админскую панель!",
         reply_markup=create_admin_kb(),
     )
-    await callback.answer()
     await state.set_state(FSMAdmin.in_adm)
 
 
@@ -53,7 +36,7 @@ async def warning_start_adm_command(message: Message):
     )
 
 
-@router_admin.callback_query(StateFilter(FSMAdmin.in_adm), isNotAdminFilterCallback(), F.data)
+@router_admin.callback_query(StateFilter(FSMAdmin.in_adm), IsNotAdminFilterCallback(), F.data)
 async def process_user_is_not_admin(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete_reply_markup()
     await callback.message.edit_text(
@@ -140,26 +123,19 @@ async def warning_add_emp_name_command(message: Message):
 
 @router_admin.message(StateFilter(FSMAdmin.add_employee_username), F.text)
 async def process_add_emp_phone_command(message: Message, state: FSMContext):
-    if "@" in message.text:
-        await state.update_data(employee_username=message.text)
+    await state.update_data(employee_username=message.text)
 
-        data = await state.get_data()
+    data = await state.get_data()
 
-        await message.answer(
-            text="Данные:\n"
-                 f"id: {data['employee_id']}\n"
-                 f"имя: {data['employee_name']}\n"
-                 f"username: {data['employee_username']}\n\n"
-                 "Всё ли корректно?",
-            reply_markup=check_add_employee(),
-        )
-        await state.set_state(FSMAdmin.check_employee)
-    else:
-        await message.answer(
-            text="Нужно прислать username в таком формате:\n\n"
-                 "<em>@test_username</em>",
-            parse_mode="html",
-        )
+    await message.answer(
+        text="Данные:\n"
+             f"id: {data['employee_id']}\n"
+             f"имя: {data['employee_name']}\n"
+             f"username: {data['employee_username']}\n\n"
+             "Всё ли корректно?",
+        reply_markup=check_add_employee(),
+    )
+    await state.set_state(FSMAdmin.check_employee)
 
 
 @router_admin.message(StateFilter(FSMAdmin.add_employee_username))
@@ -181,11 +157,13 @@ async def warning_add_emp_username_command(message: Message):
 async def process_access_emp_command(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
-    DB.add_employee(
+    await AsyncOrm.add_employee(
         fullname=data["employee_name"],
         user_id=data["employee_id"],
         username=data["employee_username"],
     )
+    cached_employees.append(data["employee_id"])
+    cached_employees_fullname_and_id.append((data["employee_name"], data["employee_id"]))
 
     await callback.message.answer(
         text=f"Сотрудник <b>{data['employee_name']}</b> с id=<b>{data['employee_id']}</b> "

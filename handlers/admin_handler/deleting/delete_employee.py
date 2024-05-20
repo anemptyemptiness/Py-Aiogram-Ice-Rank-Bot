@@ -6,8 +6,9 @@ from aiogram.fsm.context import FSMContext
 from keyboards.adm_keyboard import create_employee_list_kb, create_admin_kb, create_delete_kb
 from callbacks.employee import EmployeeCallbackFactory
 from fsm.fsm import FSMAdmin
-from .add_employee import router_admin
-from db import DB
+from handlers.admin_handler.adding.add_employee import router_admin
+from db.queries.orm import AsyncOrm
+from db import cached_employees, cached_employees_fullname_and_id
 
 router_del_emp = Router()
 router_admin.include_routers(router_del_emp)
@@ -25,10 +26,11 @@ async def process_del_emp_command(callback: CallbackQuery, state: FSMContext):
 
 @router_del_emp.callback_query(StateFilter(FSMAdmin.which_employee_to_delete), EmployeeCallbackFactory.filter())
 async def process_which_emp_to_del_command(callback: CallbackQuery, callback_data: EmployeeCallbackFactory, state: FSMContext):
-    fullname, username = DB.get_current_employee_by_id(user_id=callback_data.user_id)
+    fullname, username = await AsyncOrm.get_employee_by_id(user_id=callback_data.user_id)
 
     await state.update_data(fullname=fullname)
     await state.update_data(username=username)
+    await state.update_data(user_id=callback_data.user_id)
 
     await callback.message.edit_text(
         text="Информация:\n\n"
@@ -53,10 +55,12 @@ async def process_go_back_which_do_delete_command(callback: CallbackQuery, state
 async def process_deleting_employee_command(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
-    DB.delete_employee(
+    await AsyncOrm.delete_employee(
         fullname=data["fullname"],
         username=data["username"],
     )
+    cached_employees.remove(data["user_id"])
+    cached_employees_fullname_and_id.remove((data["fullname"], data["user_id"]))
 
     await callback.message.edit_text(
         text=f"Сотрудник {data['fullname']} успешно удален!\n\n"

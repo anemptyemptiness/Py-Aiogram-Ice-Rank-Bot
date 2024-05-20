@@ -6,8 +6,9 @@ from aiogram.fsm.context import FSMContext
 from keyboards.adm_keyboard import create_places_list_kb, create_admin_kb, create_delete_kb
 from callbacks.place import PlaceCallbackFactory
 from fsm.fsm import FSMAdmin
-from .add_employee import router_admin
-from db import DB
+from handlers.admin_handler.adding.add_employee import router_admin
+from db.queries.orm import AsyncOrm
+from db import cached_places, cached_chat_ids
 
 router_del_place = Router()
 router_admin.include_router(router_del_place)
@@ -26,10 +27,12 @@ async def process_del_place_command(callback: CallbackQuery, state: FSMContext):
 @router_del_place.callback_query(StateFilter(FSMAdmin.which_place_to_delete), PlaceCallbackFactory.filter())
 async def process_which_place_to_del_command(callback: CallbackQuery, callback_data: PlaceCallbackFactory, state: FSMContext):
     await state.update_data(title=callback_data.title)
+    await state.update_data(chat_id=callback_data.chat_id)
 
     await callback.message.edit_text(
         text="Информация:\n"
-             f"Название точки: {callback_data.title}",
+             f"Название точки: {callback_data.title}\n"
+             f"chat id: {callback_data.chat_id}",
         reply_markup=create_delete_kb(),
     )
     await callback.answer()
@@ -50,9 +53,11 @@ async def process_go_back_which_do_place_delete_command(callback: CallbackQuery,
 async def process_deleting_place_command(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
-    DB.delete_place(
+    await AsyncOrm.delete_place(
         title=data["title"],
     )
+    cached_places.pop(data["title"])
+    cached_chat_ids.remove(data["chat_id"])
 
     await callback.message.edit_text(
         text=f'Рабочая точка "{data["title"]}" <b>успешно</b> удалена!\n\n'

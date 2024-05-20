@@ -9,23 +9,26 @@ from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 
 from fsm.fsm import FSMStartShift
-from keyboards.keyboard import create_yes_no_kb, create_cancel_kb, create_places_kb
+from keyboards.keyboard import create_yes_no_kb, create_cancel_kb, create_places_kb, create_rules_kb
 from middleware.album_middleware import AlbumsMiddleware
 from lexicon.lexicon_ru import RUSSIAN_WEEK_DAYS
-from config.config import config
+from config.env_config import config
 from callbacks.place import PlaceCallbackFactory
-from db import DB
+from db import cached_places
+from db.queries.orm import AsyncOrm
+import logging
+
+logger = logging.getLogger(__name__)
 
 router_start_shift = Router()
 router_start_shift.message.middleware(middleware=AlbumsMiddleware(2))
-place_chat: dict = {title: chat_id for title, chat_id in DB.get_places_chat_ids()}
 
 
 async def report(dictionary: Dict[str, Any], date: str, user_id: Union[str, int]) -> str:
     return "📝Открытие смены:\n\n" \
            f"Дата: {date}\n" \
            f"Точка: {dictionary['place']}\n" \
-           f"Имя: {DB.get_current_name(user_id=user_id)}\n\n" \
+           f"Имя: {await AsyncOrm.get_current_name(user_id=user_id)}\n\n" \
            f"Есть дефекты у коньков: <em>{'нет' if dictionary['is_defects'] == 'no' else 'да⚠️'}</em>\n" \
            f"Все шнурки заправлены: <em>{'да' if dictionary['laces'] == 'yes' else 'no⚠️'}</em>\n" \
            f"Есть одноразовые шапочки и носки: <em>{'да' if dictionary['hats_and_socks'] == 'yes' else 'нет⚠️'}</em>\n" \
@@ -126,6 +129,7 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
             reply_markup=ReplyKeyboardRemove(),
         )
     except TelegramBadRequest as e:
+        logger.exception("Ошибка в start_shift.py при отправке отчета")
         await message.bot.send_message(
             text=f"Start shift report error: {e}\n"
                  f"User id: {message.chat.id}",
@@ -563,7 +567,7 @@ async def process_is_alert_yes_command(callback: CallbackQuery, state: FSMContex
         state=state,
         data=start_shift_dict,
         date=current_date,
-        chat_id=place_chat[start_shift_dict["place"]],
+        chat_id=cached_places[start_shift_dict["place"]],
     )
 
     await callback.answer()
@@ -591,7 +595,7 @@ async def process_is_alert_no_command(callback: CallbackQuery, state: FSMContext
         state=state,
         data=start_shift_dict,
         date=current_date,
-        chat_id=place_chat[start_shift_dict["place"]],
+        chat_id=cached_places[start_shift_dict["place"]],
     )
 
     await callback.answer()
