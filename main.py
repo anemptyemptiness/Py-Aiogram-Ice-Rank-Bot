@@ -22,7 +22,7 @@ from autoposting.check_for_revenue import (
 from autoposting.send_notifications import (
     creating_new_loop_for_notification,
 )
-
+from db.queries.orm import AsyncOrm
 
 async def main() -> None:
     bot = Bot(token=config.tg_bot.token)
@@ -48,6 +48,7 @@ async def main() -> None:
 
     await set_default_commands(bot)
     await bot.delete_webhook(drop_pending_updates=True)
+    await AsyncOrm.create_tables()
 
     global_loop = asyncio.get_event_loop()
     auto_posting_thread = Thread(target=creating_new_loop_for_notification, args=(global_loop, bot))
