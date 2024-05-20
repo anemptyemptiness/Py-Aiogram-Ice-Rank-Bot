@@ -22,11 +22,11 @@ from autoposting.check_for_revenue import (
 from autoposting.send_notifications import (
     creating_new_loop_for_notification,
 )
-from db.queries.orm import AsyncOrm
+# from db.queries.orm import AsyncOrm
 
 
 async def main() -> None:
-    await AsyncOrm.create_tables()
+    # await AsyncOrm.create_tables()
 
     bot = Bot(token=config.tg_bot.token)
     storage = RedisStorage(redis=config.redis)
