@@ -86,7 +86,7 @@ async def process_add_admin_phone_command(message: Message, state: FSMContext):
         text="Данные:\n"
              f"id: {data['admin_id']}\n"
              f"имя: {data['admin_name']}\n"
-             f"username: {data['admin_username']}\n\n"
+             f"username(или номер): {data['admin_username']}\n\n"
              "Всё ли корректно?",
         reply_markup=check_add_admin(),
     )
@@ -117,8 +117,10 @@ async def process_access_admin_command(callback: CallbackQuery, state: FSMContex
         user_id=data["admin_id"],
         username=data["admin_username"],
     )
-    cached_admins.append(data["admin_id"])
-    cached_admins_fullname_and_id.append((data["admin_name"], data["admin_id"]))
+    if data["admin_id"] not in cached_admins:
+        cached_admins.append(data["admin_id"])
+    if (data["admin_name"], data["admin_id"]) not in cached_admins_fullname_and_id:
+        cached_admins_fullname_and_id.append((data["admin_name"], data["admin_id"]))
 
     await callback.message.answer(
         text=f"Администратор <b>{data['admin_name']}</b> с id=<b>{data['admin_id']}</b> "
@@ -161,7 +163,7 @@ async def process_reid_admin_command(callback: CallbackQuery, state: FSMContext)
 @router_add_adm.callback_query(StateFilter(FSMAdmin.check_admin), F.data == "reusername_admin")
 async def process_reusername_admin_command(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
-        text="Введите новый <b>username</b> администратора\n\n"
+        text="Введите новый <b>username</b> администратора (или номер)\n\n"
              "<em>Например: @username</em>",
         parse_mode="html",
     )
@@ -179,7 +181,7 @@ async def process_new_name_admin_command(message: Message, state: FSMContext):
         text="Данные:\n"
              f"id: {data['admin_id']}\n"
              f"имя: {data['admin_name']}\n"
-             f"username: {data['admin_username']}\n\n"
+             f"username(или номер): {data['admin_username']}\n\n"
              "Всё корректно?",
         reply_markup=check_add_admin(),
     )
@@ -205,7 +207,7 @@ async def process_new_id_admin_command(message: Message, state: FSMContext):
         text="Данные:\n"
              f"id: {data['admin_id']}\n"
              f"имя: {data['admin_name']}\n"
-             f"username: {data['admin_username']}\n\n"
+             f"username(или номер): {data['admin_username']}\n\n"
              "Всё корректно?",
         reply_markup=check_add_admin(),
     )
@@ -233,7 +235,7 @@ async def process_new_username_admin_command(message: Message, state: FSMContext
         text="Данные:\n"
              f"id: {data['admin_id']}\n"
              f"имя: {data['admin_name']}\n"
-             f"username: {data['admin_username']}\n\n"
+             f"username(или номер): {data['admin_username']}\n\n"
              "Всё корректно?",
         reply_markup=check_add_admin(),
     )
@@ -243,7 +245,7 @@ async def process_new_username_admin_command(message: Message, state: FSMContext
 @router_add_adm.message(StateFilter(FSMAdmin.reusername_admin))
 async def warning_new_username_admin_command(message: Message):
     await message.answer(
-        text="Введите новый <b>username</b> администратора\n\n"
+        text="Введите новый <b>username</b> администратора (или номер)\n\n"
              "<em>Например: @username</em>",
         parse_mode="html",
     )

@@ -86,7 +86,8 @@ async def process_accept_place_command(callback: CallbackQuery, state: FSMContex
         chat_id=data["chat_id"],
     )
     cached_places[data["title"]] = data["chat_id"]
-    cached_chat_ids.append(data["chat_id"])
+    if data["chat_id"] not in cached_chat_ids:
+        cached_chat_ids.append(data["chat_id"])
 
     await callback.message.answer(
         text=f'Рабочая точка "{data["title"]}" с chat_id={data["chat_id"]} <b>успешно</b> добавлена!',

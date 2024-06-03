@@ -131,7 +131,7 @@ async def process_add_emp_phone_command(message: Message, state: FSMContext):
         text="Данные:\n"
              f"id: {data['employee_id']}\n"
              f"имя: {data['employee_name']}\n"
-             f"username: {data['employee_username']}\n\n"
+             f"username(или номер): {data['employee_username']}\n\n"
              "Всё ли корректно?",
         reply_markup=check_add_employee(),
     )
@@ -162,8 +162,10 @@ async def process_access_emp_command(callback: CallbackQuery, state: FSMContext)
         user_id=data["employee_id"],
         username=data["employee_username"],
     )
-    cached_employees.append(data["employee_id"])
-    cached_employees_fullname_and_id.append((data["employee_name"], data["employee_id"]))
+    if data["employee_id"] not in cached_employees:
+        cached_employees.append(data["employee_id"])
+    if (data["employee_name"], data["employee_id"]) not in cached_employees_fullname_and_id:
+        cached_employees_fullname_and_id.append((data["employee_name"], data["employee_id"]))
 
     await callback.message.answer(
         text=f"Сотрудник <b>{data['employee_name']}</b> с id=<b>{data['employee_id']}</b> "
@@ -206,7 +208,7 @@ async def process_reid_emp_command(callback: CallbackQuery, state: FSMContext):
 @router_admin.callback_query(StateFilter(FSMAdmin.check_employee), F.data == "reusername_employee")
 async def process_reusername_emp_command(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
-        text="Введите новый <b>username</b> сотрудника\n\n"
+        text="Введите новый <b>username</b> сотрудника (или номер)\n\n"
              "<em>Например: @username</em>",
         parse_mode="html",
     )
@@ -224,7 +226,7 @@ async def process_new_name_emp_command(message: Message, state: FSMContext):
         text="Данные:\n"
              f"id: {data['employee_id']}\n"
              f"имя: {data['employee_name']}\n"
-             f"username: {data['employee_username']}\n\n"
+             f"username(или номер): {data['employee_username']}\n\n"
              "Всё корректно?",
         reply_markup=check_add_employee(),
     )
@@ -250,7 +252,7 @@ async def process_new_id_emp_command(message: Message, state: FSMContext):
         text="Данные:\n"
              f"id: {data['employee_id']}\n"
              f"имя: {data['employee_name']}\n"
-             f"username: {data['employee_username']}\n\n"
+             f"username(или номер): {data['employee_username']}\n\n"
              "Всё корректно?",
         reply_markup=check_add_employee(),
     )
@@ -278,7 +280,7 @@ async def process_new_username_emp_command(message: Message, state: FSMContext):
         text="Данные:\n"
              f"id: {data['employee_id']}\n"
              f"имя: {data['employee_name']}\n"
-             f"username: {data['employee_username']}\n\n"
+             f"username(или номер): {data['employee_username']}\n\n"
              "Всё корректно?",
         reply_markup=check_add_employee(),
     )
@@ -288,7 +290,7 @@ async def process_new_username_emp_command(message: Message, state: FSMContext):
 @router_admin.message(StateFilter(FSMAdmin.reusername_employee))
 async def warning_reusername_emp_command(message: Message):
     await message.answer(
-        text="Введите новый <b>username</b> сотрудника\n\n"
+        text="Введите новый <b>username</b> сотрудника (или номер)\n\n"
              "<em>Например: @username</em>",
         parse_mode="html",
     )
