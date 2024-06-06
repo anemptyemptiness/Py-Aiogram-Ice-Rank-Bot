@@ -6,7 +6,7 @@ from aiogram.filters import StateFilter, Command
 from aiogram.fsm.state import default_state
 from aiogram.fsm.context import FSMContext
 from aiogram import F, Router
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramAPIError
 
 from src.keyboards.keyboard import create_places_kb, create_cancel_kb, create_yes_no_kb
 from src.middleware.album_middleware import AlbumsMiddleware
@@ -128,9 +128,24 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
             text="Отлично! Отчёт успешно отправлен👍🏻",
             reply_markup=ReplyKeyboardRemove(),
         )
+        await message.answer(
+            text="Вы вернулись в главное меню"
+        )
 
-    except TelegramBadRequest as e:
-        logger.exception("Ошибка в finish_shift.py при отправке отчета")
+    except Exception as e:
+        logger.exception("Ошибка не с телеграм в finish_shift.py при отправке отчета")
+        await message.bot.send_message(
+            text=f"Finish shift report error: {e}\n"
+                 f"User id: {message.chat.id}",
+            chat_id=settings.ADMIN_ID,
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        await message.answer(
+            text="Упс... что-то пошло не так, сообщите руководству!",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+    except TelegramAPIError as e:
+        logger.exception("Ошибка с телеграм в finish_shift.py при отправке отчета")
         await message.bot.send_message(
             text=f"Finish shift report error: {e}\n"
                  f"User id: {message.chat.id}",
