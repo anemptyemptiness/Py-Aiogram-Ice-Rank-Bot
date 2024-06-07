@@ -3,14 +3,19 @@ from aiogram.fsm.storage.redis import Redis
 
 
 class Settings(BaseSettings):
+    TOKEN: str
+
+    ADMIN_ID: int
+
     DB_HOST: str
     DB_PORT: int
     DB_USER: str
     DB_PASS: str
     DB_NAME: str
-    ADMIN_ID: int
+
     REDIS_HOST: str
-    TOKEN: str
+
+    DAYS_FOR_FINANCES_CHECK: int
 
     @property
     def get_url_asyncpg(self):
