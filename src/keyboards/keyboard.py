@@ -16,7 +16,7 @@ def create_places_kb() -> InlineKeyboardMarkup:
             )
         ])
 
-    kb.append([InlineKeyboardButton(text="Отмена", callback_data="cancel")])
+    kb.append([InlineKeyboardButton(text="➢ Отмена", callback_data="cancel")])
 
     return InlineKeyboardMarkup(
         inline_keyboard=kb,
@@ -28,7 +28,7 @@ def create_yes_no_kb() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="Да", callback_data="yes"),
              InlineKeyboardButton(text="Нет", callback_data="no")],
-            [InlineKeyboardButton(text="Отмена", callback_data="cancel")],
+            [InlineKeyboardButton(text="➢ Отмена", callback_data="cancel")],
         ],
     )
 
@@ -47,4 +47,24 @@ def create_cancel_kb() -> ReplyKeyboardMarkup:
             [KeyboardButton(text="Отмена")],
         ],
         resize_keyboard=True,
+    )
+
+
+def create_good_or_bad_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Хорошее", callback_data="good"),
+             InlineKeyboardButton(text="Плохое", callback_data="bad")],
+            [InlineKeyboardButton(text="➢ Отмена", callback_data="cancel")],
+        ]
+    )
+
+
+def create_salaries_checking_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Отправить", callback_data="send_salaries")],
+            [InlineKeyboardButton(text="Изменить текст", callback_data="rewrite_salaries")],
+            [InlineKeyboardButton(text="➢ Отмена", callback_data="cancel")],
+        ]
     )

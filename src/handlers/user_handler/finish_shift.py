@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram import F, Router
 from aiogram.exceptions import TelegramAPIError
 
-from src.keyboards.keyboard import create_places_kb, create_cancel_kb, create_yes_no_kb
+from src.keyboards.keyboard import create_places_kb, create_cancel_kb, create_yes_no_kb, create_salaries_checking_kb
 from src.middleware.album_middleware import AlbumsMiddleware
 from src.lexicon.lexicon_ru import RUSSIAN_WEEK_DAYS
 from src.config import settings
@@ -35,13 +35,15 @@ async def report(dictionary: Dict[str, Any], date: str, user_id: Union[str, int]
            f"Есть ли одноразовые носки и шапочки: <em>{'да' if dictionary['is_hats_and_socks'] == 'yes' else 'нет⚠️'}</em>\n" \
            f"Есть ли дефекты у защиты или шлемов: <em>{'да⚠️' if dictionary['is_depend_defects'] == 'yes' else 'нет'}</em>\n" \
            f"Музыка выключена: <em>{'да' if dictionary['is_music'] == 'yes' else 'нет⚠️'}</em>\n" \
-           f"Оповещения выключены: <em>{'да' if dictionary['is_alert_off'] == 'yes' else 'нет⚠️'}</em>\n\n" \
+           f"Павильон и зона проката чистые: <em>{'да' if dictionary['is_clear_zone_of_ice'] == 'yes' else 'нет⚠️'}</em>\n\n" \
            f"Наличные: <em>{dictionary['cash']} руб.</em>\n" \
            f"Безнал: <em>{dictionary['online_cash']} руб.</em>\n" \
            f"QR-код: <em>{dictionary['qr_code']} руб.</em>\n" \
            f"Суммарно денег: <em>{dictionary['summary']} руб.</em>\n\n" \
            f"Число посетителей: <em>{dictionary['visitors']}</em>\n" \
-           f"Льготники: <em>{'нет' if dictionary['is_benefits'] == 'no' else 'да'}</em>"
+           f"Количество чеков за день: <em>{dictionary['count_of_receipts_per_day']}</em>\n" \
+           f"Льготники: <em>{'нет' if dictionary['is_benefits'] == 'no' else 'да'}</em>\n\n" \
+           f"Зарплаты сотрудников:\n<em>{dictionary['salaries']}</em>"
 
 
 async def send_report(message: Message, state: FSMContext, data: dict, date: str, chat_id: Union[str, int]):
@@ -157,10 +159,6 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
             reply_markup=ReplyKeyboardRemove(),
         )
     finally:
-        await message.answer(
-            text="Вы вернулись в главное меню"
-        )
-
         await state.clear()
 
 
@@ -585,11 +583,10 @@ async def process_is_music_yes_command(callback: CallbackQuery, state: FSMContex
              "➢ Да"
     )
     await callback.message.answer(
-        text="Оповещения выключены?",
-        reply_markup=create_yes_no_kb(),
+        text="Какое количество чеков за день?",
     )
     await callback.answer()
-    await state.set_state(FSMFinishShift.is_alert_off)
+    await state.set_state(FSMFinishShift.count_of_receipts_per_day)
 
 
 @router_finish.callback_query(StateFilter(FSMFinishShift.is_music), F.data == "no")
@@ -601,20 +598,85 @@ async def process_is_music_no_command(callback: CallbackQuery, state: FSMContext
              "➢ Нет"
     )
     await callback.message.answer(
-        text="Оповещения выключены?",
+        text="Какое количество чеков за день?",
+    )
+    await callback.answer()
+    await state.set_state(FSMFinishShift.count_of_receipts_per_day)
+
+
+@router_finish.message(StateFilter(FSMFinishShift.count_of_receipts_per_day), F.text)
+async def process_count_of_receipts_per_day_command(message: Message, state: FSMContext):
+    await state.update_data(count_of_receipts_per_day=message.text)
+    await message.answer(
+        text="Распишите зарплаты сотрудников за рабочую смену с указанием имён в <b>одном сообщении</b>",
+        parse_mode="html",
+    )
+    await state.set_state(FSMFinishShift.salaries)
+
+
+@router_finish.message(StateFilter(FSMFinishShift.count_of_receipts_per_day))
+async def warning_count_of_receipts_per_day_command(message: Message):
+    await message.answer(
+        text="Я не понял Вас. Пожалуйста, напишите количество чеков за день текстом",
+    )
+
+
+@router_finish.message(StateFilter(FSMFinishShift.salaries), F.text)
+async def process_salaries_command(message: Message, state: FSMContext):
+    await state.update_data(salaries=message.text)
+    await message.answer(
+        text="Я получил от Вас расписанные зарплаты сотрудников.\n"
+             "Пожалуйста, проверьте, всё ли верно?\n\n"
+             "Сообщение: <em>\n"
+             f"{message.text}</em>",
+        reply_markup=create_salaries_checking_kb(),
+        parse_mode="html",
+    )
+    await state.set_state(FSMFinishShift.check_result_of_salaries)
+
+
+@router_finish.message(StateFilter(FSMFinishShift.salaries))
+async def warning_salaries_command(message: Message):
+    await message.answer(
+        text="Я не понял Вас\n"
+             "Пожалуйста, распишите зарплаты сотрудников за рабочую смену"
+             " с указанием имён в <b>одном сообщении</b> текстом!",
+        parse_mode="html",
+    )
+
+
+@router_finish.callback_query(StateFilter(FSMFinishShift.check_result_of_salaries), F.data == "send_salaries")
+async def process_send_salaries_command(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete_reply_markup()
+    await callback.message.edit_text(
+        text="Я получил от Вас расписанные зарплаты сотрудников.\n"
+             "Пожалуйста, проверьте, всё ли верно?\n\n"
+             "➢ Отправить",
+    )
+    await callback.message.answer(
+        text="Павильон и зона проката чистые?",
         reply_markup=create_yes_no_kb(),
     )
     await callback.answer()
-    await state.set_state(FSMFinishShift.is_alert_off)
+    await state.set_state(FSMFinishShift.is_clear_zone_of_ice)
 
 
-@router_finish.callback_query(StateFilter(FSMFinishShift.is_alert_off), F.data == "yes")
-async def process_is_alert_off_yes_command(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(is_alert_off="yes")
+@router_finish.callback_query(StateFilter(FSMFinishShift.check_result_of_salaries), F.data == "rewrite_salaries")
+async def process_rewrite_salaries_command(callback: CallbackQuery, state: FSMContext):
+    await callback.message.answer(
+        text="Распишите зарплаты сотрудников за рабочую смену с указанием имён в <b>одном сообщении</b>",
+        parse_mode="html",
+    )
+    await state.set_state(FSMFinishShift.salaries)
+
+
+@router_finish.callback_query(StateFilter(FSMFinishShift.is_clear_zone_of_ice), F.data == "yes")
+async def process_is_clear_zone_of_ice_yes_command(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(is_clear_zone_of_ice="yes")
     await callback.message.delete_reply_markup()
     await callback.message.edit_text(
-        text="Оповещения выключены?\n\n"
-             "➢ Да"
+        text="Павильон и зона проката чистые?\n\n"
+             "➢ Да",
     )
     await callback.message.answer(
         text="Павильон закрыт?",
@@ -624,13 +686,13 @@ async def process_is_alert_off_yes_command(callback: CallbackQuery, state: FSMCo
     await state.set_state(FSMFinishShift.is_working_place_closed)
 
 
-@router_finish.callback_query(StateFilter(FSMFinishShift.is_alert_off), F.data == "no")
-async def process_is_alert_off_no_command(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(is_alert_off="no")
+@router_finish.callback_query(StateFilter(FSMFinishShift.is_clear_zone_of_ice), F.data == "no")
+async def process_is_clear_zone_of_ice_no_command(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(is_clear_zone_of_ice="no")
     await callback.message.delete_reply_markup()
     await callback.message.edit_text(
-        text="Оповещения выключены?\n\n"
-             "➢ Нет"
+        text="Павильон и зона проката чистые?\n\n"
+             "➢ Нет",
     )
     await callback.message.answer(
         text="Павильон закрыт?",

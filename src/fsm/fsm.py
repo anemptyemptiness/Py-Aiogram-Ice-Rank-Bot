@@ -17,7 +17,8 @@ class FSMStartShift(StatesGroup):
     boxes_defects_photo = State()
     is_defend = State()
     is_music = State()
-    is_alert = State()
+    is_clear_zone_of_ice = State()
+    what_state_of_ice = State()
 
 
 class FSMDailyChecking(StatesGroup):
@@ -53,7 +54,10 @@ class FSMFinishShift(StatesGroup):
     is_depend_defects = State()
     depend_defects_photo = State()
     is_music = State()
-    is_alert_off = State()
+    count_of_receipts_per_day = State()
+    salaries = State()
+    check_result_of_salaries = State()
+    is_clear_zone_of_ice = State()
     is_working_place_closed = State()
 
 

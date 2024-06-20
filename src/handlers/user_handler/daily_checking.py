@@ -108,9 +108,6 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
             reply_markup=ReplyKeyboardRemove(),
         )
     finally:
-        await message.answer(
-            text="Вы вернулись в главное меню"
-        )
         await state.clear()
 
 

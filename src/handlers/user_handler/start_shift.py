@@ -9,7 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramAPIError
 
 from src.fsm.fsm import FSMStartShift
-from src.keyboards.keyboard import create_yes_no_kb, create_cancel_kb, create_places_kb
+from src.keyboards.keyboard import create_yes_no_kb, create_cancel_kb, create_places_kb, create_good_or_bad_kb
 from src.middleware.album_middleware import AlbumsMiddleware
 from src.lexicon.lexicon_ru import RUSSIAN_WEEK_DAYS
 from src.config import settings
@@ -35,7 +35,8 @@ async def report(dictionary: Dict[str, Any], date: str, user_id: Union[str, int]
            f"Есть дефекты у пингвинов: <em>{'нет' if dictionary['is_penguins'] == 'no' else 'да⚠️'}</em>\n" \
            f"Есть дефекты ящиков хранения: <em>{'нет' if dictionary['is_boxes'] == 'no' else 'да⚠️'}</em>\n" \
            f"Музыка включена: <em>{'да' if dictionary['is_music'] == 'yes' else 'нет⚠️'}</em>\n" \
-           f"Оповещения включены: <em>{'да' if dictionary['is_alert'] == 'yes' else 'нет⚠️'}</em>"
+           f"Павильон и зона проката чистые: <em>{'да' if dictionary['is_clear_zone_of_ice'] == 'yes' else 'нет⚠️'}</em>\n" \
+           f"Состояние льда: <em>{'хорошее🟢' if dictionary['what_state_of_ice'] == 'good' else 'плохое🔴'}</em>"
 
 
 async def send_report(message: Message, state: FSMContext, data: dict, date: str, chat_id: Union[str, int]):
@@ -157,10 +158,6 @@ async def send_report(message: Message, state: FSMContext, data: dict, date: str
             reply_markup=ReplyKeyboardRemove(),
         )
     finally:
-        await message.answer(
-            text="Вы вернулись в главное меню"
-        )
-
         await state.clear()
 
 
@@ -537,11 +534,11 @@ async def process_music_yes_command(callback: CallbackQuery, state: FSMContext):
              "➢ Да"
     )
     await callback.message.answer(
-        text="Включены ли оповещения о начале сеансов?",
+        text="Павильон и зона проката чистые?",
         reply_markup=create_yes_no_kb(),
     )
     await callback.answer()
-    await state.set_state(FSMStartShift.is_alert)
+    await state.set_state(FSMStartShift.is_clear_zone_of_ice)
 
 
 @router_start_shift.callback_query(StateFilter(FSMStartShift.is_music), F.data == "no")
@@ -554,48 +551,52 @@ async def process_music_no_command(callback: CallbackQuery, state: FSMContext):
     )
     await callback.message.answer(
         text="⚠️Включите музыку!\n\n"
-             "Включены ли оповещения о начале сеансов?",
+             "Павильон и зона проката чистые?",
         reply_markup=create_yes_no_kb(),
     )
     await callback.answer()
-    await state.set_state(FSMStartShift.is_alert)
+    await state.set_state(FSMStartShift.is_clear_zone_of_ice)
 
 
-@router_start_shift.callback_query(StateFilter(FSMStartShift.is_alert), F.data == "yes")
+@router_start_shift.callback_query(StateFilter(FSMStartShift.is_clear_zone_of_ice), F.data == "yes")
 async def process_is_alert_yes_command(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(is_alert="yes")
+    await state.update_data(is_clear_zone_of_ice="yes")
     await callback.message.delete_reply_markup()
     await callback.message.edit_text(
-        text="Включены ли оповещения о начале сеансов?\n\n"
+        text="Павильон и зона проката чистые?\n\n"
              "➢ Да"
     )
     await callback.message.answer(
-        text="Спасибо! Желаю Вам продуктивного рабочего дня😊"
+        text="Каково состояние льда?",
+        reply_markup=create_good_or_bad_kb(),
     )
-
-    day_of_week = datetime.now(tz=timezone(timedelta(hours=3.0))).strftime('%A')
-    current_date = datetime.now(tz=timezone(timedelta(hours=3.0))).strftime(f'%d/%m/%Y - {RUSSIAN_WEEK_DAYS[day_of_week]}')
-
-    start_shift_dict = await state.get_data()
-
-    await send_report(
-        message=callback.message,
-        state=state,
-        data=start_shift_dict,
-        date=current_date,
-        chat_id=cached_places[start_shift_dict["place"]],
-    )
-
     await callback.answer()
+    await state.set_state(FSMStartShift.what_state_of_ice)
 
 
-@router_start_shift.callback_query(StateFilter(FSMStartShift.is_alert), F.data == "no")
+@router_start_shift.callback_query(StateFilter(FSMStartShift.is_clear_zone_of_ice), F.data == "no")
 async def process_is_alert_no_command(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(is_alert="no")
+    await state.update_data(is_clear_zone_of_ice="no")
     await callback.message.delete_reply_markup()
     await callback.message.edit_text(
-        text="Включены ли оповещения о начале сеансов?\n\n"
+        text="Павильон и зона проката чистые?\n\n"
              "➢ Нет"
+    )
+    await callback.message.answer(
+        text="Каково состояние льда?",
+        reply_markup=create_good_or_bad_kb(),
+    )
+    await callback.answer()
+    await state.set_state(FSMStartShift.what_state_of_ice)
+
+
+@router_start_shift.callback_query(StateFilter(FSMStartShift.what_state_of_ice), F.data == "good")
+async def process_what_state_of_ice_good_command(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(what_state_of_ice="good")
+    await callback.message.delete_reply_markup()
+    await callback.message.edit_text(
+        text="Каково состояние льда?\n\n"
+             "➢ Хорошее",
     )
     await callback.message.answer(
         text="Спасибо! Желаю Вам продуктивного рабочего дня😊"
@@ -613,5 +614,32 @@ async def process_is_alert_no_command(callback: CallbackQuery, state: FSMContext
         date=current_date,
         chat_id=cached_places[start_shift_dict["place"]],
     )
+    await callback.answer()
 
+
+@router_start_shift.callback_query(StateFilter(FSMStartShift.what_state_of_ice), F.data == "bad")
+async def process_what_state_of_ice_bad_command(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(what_state_of_ice="bad")
+    await callback.message.delete_reply_markup()
+    await callback.message.edit_text(
+        text="Каково состояние льда?\n\n"
+             "➢ Плохое",
+    )
+    await callback.message.answer(
+        text="Спасибо! Желаю Вам продуктивного рабочего дня😊"
+    )
+
+    day_of_week = datetime.now(tz=timezone(timedelta(hours=3.0))).strftime('%A')
+    current_date = datetime.now(tz=timezone(timedelta(hours=3.0))).strftime(
+        f'%d/%m/%Y - {RUSSIAN_WEEK_DAYS[day_of_week]}')
+
+    start_shift_dict = await state.get_data()
+
+    await send_report(
+        message=callback.message,
+        state=state,
+        data=start_shift_dict,
+        date=current_date,
+        chat_id=cached_places[start_shift_dict["place"]],
+    )
     await callback.answer()
