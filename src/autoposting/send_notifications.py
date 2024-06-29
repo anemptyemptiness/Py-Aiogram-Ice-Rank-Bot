@@ -42,9 +42,7 @@ async def auto_posting(bot: Bot):
                     last_message = message
 
                     await asyncio.sleep(60 * 60)  # спим час
-                except Exception:
-                    logger.exception("Ошибка в отправке уведомлений, auto_posting()")
-                except TelegramBadRequest:
-                    logger.exception("Ошибка от Telegram в отправке уведомлений, auto_posting()")
+                except (Exception, TelegramBadRequest):
+                    pass
         else:
             await asyncio.sleep(60 * 60)  # спим час
